@@ -76,7 +76,7 @@ jobs:
           pip install pip-audit
 
       - name: Audit dependencies
-        run: pip-audit --desc
+        run: pip-audit --desc --skip-editable
 
   sast:
     name: Static analysis (CodeQL)
