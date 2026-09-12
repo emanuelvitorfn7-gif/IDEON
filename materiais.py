@@ -25,7 +25,7 @@ def extrair_paginas_pdf(dados: bytes) -> list:
         raise
     except (PdfReadError, ValueError, EOFError):
         raise ErroMaterial("PDF corrompido ou ilegível. Envie outro arquivo.")
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise ErroMaterial("Não foi possível ler este PDF. Envie outro arquivo.")
     if not brutas:
         raise ErroMaterial("PDF sem páginas legíveis.")
@@ -34,7 +34,7 @@ def extrair_paginas_pdf(dados: bytes) -> list:
         for i, pagina in enumerate(brutas, start=1):
             texto = (pagina.extract_text() or "").strip()
             paginas.append({"numero": i, "texto": texto})
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise ErroMaterial("Falha ao extrair o texto. Envie outro arquivo.")
     uteis = sum(1 for p in paginas if len(p["texto"]) >= MIN_TEXTO_PAGINA)
     if uteis == 0:

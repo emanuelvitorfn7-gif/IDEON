@@ -101,7 +101,7 @@ def gerar_questoes(paginas, quantidade, rotulo="Página", chave=None, modelo=Non
         raise ErroIA("Falha de conexão com a API. Verifique a internet.")
     except ErroIA:
         raise
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise ErroIA("Resposta inválida da API. Tente de novo.")
     try:
         conteudo = bruto["choices"][0]["message"]["content"]

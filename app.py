@@ -24,8 +24,8 @@ import xp
 from auth import csrf_token, login_required, perfil_required, validar_csrf
 from db import close_db, get_db, init_db
 from materiais import (
-    ErroMaterial,
     LIMITE_PDF_BYTES,
+    ErroMaterial,
     dividir_texto_em_secoes,
     extrair_paginas_pdf,
 )
@@ -663,7 +663,6 @@ def create_app():
             " WHERE i.aluno_id = ? ORDER BY t.id DESC",
             (g.usuario["id"],),
         ).fetchall()
-        total = xp.total_xp(db, g.usuario["id"])
         return render_template("aluno/painel.html", turmas=turmas,
                                resumo=paineis.resumo_aluno(db, g.usuario["id"]))
 
@@ -790,7 +789,7 @@ def create_app():
     def iniciar_tentativa(atividade_id):
         validar_csrf()
         db = get_db()
-        atv = _atividade_do_aluno(db, atividade_id)
+        _atividade = _atividade_do_aluno(db, atividade_id)
         aberta = db.execute(
             "SELECT id FROM tentativas WHERE atividade_id = ? AND aluno_id = ?"
             " AND concluida_em IS NULL ORDER BY id DESC LIMIT 1",
@@ -875,7 +874,7 @@ def create_app():
             if feitas < tent["total"]:
                 return redirect(url_for("responder", tentativa_id=tentativa_id))
             try:
-                acertos, total, ganho = xp.concluir_tentativa(
+                _acertos, _total, ganho = xp.concluir_tentativa(
                     db, tentativa_id, g.usuario["id"])
             except ValueError as e:
                 flash(str(e), "erro")

@@ -12,8 +12,8 @@ import unittest
 
 os.environ["DATABASE_URL"] = os.path.join(tempfile.gettempdir(), "ideon_test.db")
 
-from app import create_app  # noqa: E402
-from db import init_db  # noqa: E402
+from app import create_app
+from db import init_db
 
 
 def nova_questao(db, atv, i, assunto="Ass"):
@@ -111,7 +111,7 @@ class Base(unittest.TestCase):
 
 class TestPermissoes(Base):
     def test_isolamento_professor_e_aluno(self):
-        p1, a, pid1, aid, tid, atv, qs = self.cenario()
+        _p1, a, _pid1, _aid, tid, atv, _qs = self.cenario()
         p2 = self.app.test_client()
         self.conta(p2, "p2@x.com", "professor")
         self.assertEqual(p2.get(f"/professor/turmas/{tid}").status_code, 403)
@@ -121,7 +121,7 @@ class TestPermissoes(Base):
         self.assertEqual(anon.get("/painel").status_code, 302)
 
     def test_aluno_fora_da_turma_bloqueado(self):
-        p, a, pid, aid, tid, atv, qs = self.cenario()
+        _p, _a, _pid, _aid, tid, atv, _qs = self.cenario()
         b = self.app.test_client()
         self.conta(b, "b@x.com", "aluno")
         self.assertEqual(b.get(f"/aluno/atividades/{atv}").status_code, 403)
@@ -130,7 +130,7 @@ class TestPermissoes(Base):
 
 class TestRascunhos(Base):
     def test_rascunho_invisivel_ao_aluno(self):
-        p, a, pid, aid, tid, atv, qs = self.cenario()
+        _p, a, _pid, _aid, _tid, atv, _qs = self.cenario()
         self.db.execute("UPDATE materiais SET estado = 'rascunho'")
         self.db.execute("UPDATE atividades SET estado = 'rascunho', publicada = 0")
         self.db.commit()
@@ -139,7 +139,7 @@ class TestRascunhos(Base):
         self.assertEqual(a.get(f"/aluno/atividades/{atv}").status_code, 403)
 
     def test_publicar_exige_aprovacao_total(self):
-        p, a, pid, aid, tid, atv, qs = self.cenario()
+        p, _a, _pid, _aid, tid, _atv, _qs = self.cenario()
         self.db.execute(
             "INSERT INTO atividades (turma_id, titulo) VALUES (?, 'R')", (tid,))
         rid = self.db.execute(
@@ -169,7 +169,7 @@ class TestRascunhos(Base):
 
 class TestCorrecaoServidor(Base):
     def test_gabarito_nao_vaza_e_correcao_eh_no_servidor(self):
-        p, a, pid, aid, tid, atv, qs = self.cenario(n_q=2)
+        _p, a, _pid, _aid, _tid, atv, qs = self.cenario(n_q=2)
         t = self.csrf(a, f"/aluno/atividades/{atv}")
         a.post(f"/aluno/atividades/{atv}/iniciar", data={"csrf_token": t})
         tent = self.db.execute("SELECT id FROM tentativas").fetchone()["id"]
@@ -185,7 +185,7 @@ class TestCorrecaoServidor(Base):
         self.assertEqual((row["alternativa"], row["correta"]), (3, 0))
 
     def test_sem_alteracao_retroativa(self):
-        p, a, pid, aid, tid, atv, qs = self.cenario(n_q=1)
+        _p, a, _pid, _aid, _tid, atv, qs = self.cenario(n_q=1)
         self.tentativa(a, atv, qs, {0})
         tent = self.db.execute("SELECT id FROM tentativas").fetchone()["id"]
         t = self.csrf(a, f"/aluno/tentativas/{tent}/responder")
@@ -197,7 +197,7 @@ class TestCorrecaoServidor(Base):
 
 class TestXP(Base):
     def test_primeira_conclusao_e_recargas_nao_duplicam(self):
-        p, a, pid, aid, tid, atv, qs = self.cenario(n_q=5)
+        _p, a, _pid, aid, _tid, atv, qs = self.cenario(n_q=5)
         tent = self.tentativa(a, atv, qs, {0, 1})  # 2/5 -> 20 + 20 = 40
         self.assertEqual(self.xp_de(aid), 40)
         a.get(f"/aluno/tentativas/{tent}/resultado")
@@ -209,12 +209,12 @@ class TestXP(Base):
 
 class TestIndicadores(Base):
     def test_evolucao_ranking_e_stats(self):
-        import paineis  # noqa: E402
-        p, a, pid, aid, tid, atv, qs = self.cenario(n_q=10)
+        import paineis
+        _p, a, _pid, aid, tid, atv, qs = self.cenario(n_q=10)
         self.tentativa(a, atv, qs, {0, 1, 2, 3})          # 40%
         self.tentativa(a, atv, qs, {0, 1, 2, 3, 4, 5, 6})  # 70%
         with self.app.app_context():
-            from db import get_db  # noqa: E402
+            from db import get_db
             db = get_db()
             res = paineis.resumo_aluno(db, aid)
             self.assertEqual(res["evolucao"][0]["diff"], 30)
