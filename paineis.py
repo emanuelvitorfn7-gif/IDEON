@@ -44,9 +44,9 @@ def resumo_aluno(db, aluno_id):
             continue
         p0 = _pct(tents[0]["acertos"], tents[0]["total"])
         p1 = _pct(tents[-1]["acertos"], tents[-1]["total"])
-        titulo = db.execute(
-            "SELECT titulo FROM atividades WHERE id = ?", (aid,)
-        ).fetchone()["titulo"]
+        titulo = db.execute("SELECT titulo FROM atividades WHERE id = ?", (aid,)).fetchone()[
+            "titulo"
+        ]
         evolucao.append({"atividade": titulo, "de": p0, "para": p1, "diff": p1 - p0})
     recomend = []
     for aid, tents in ativs.items():
@@ -61,9 +61,9 @@ def resumo_aluno(db, aluno_id):
             " GROUP BY q.assunto, q.pagina ORDER BY n DESC",
             (ultima,),
         ).fetchall()
-        titulo = db.execute(
-            "SELECT titulo FROM atividades WHERE id = ?", (aid,)
-        ).fetchone()["titulo"]
+        titulo = db.execute("SELECT titulo FROM atividades WHERE id = ?", (aid,)).fetchone()[
+            "titulo"
+        ]
         for e in erros:
             recomend.append(
                 {
@@ -71,9 +71,7 @@ def resumo_aluno(db, aluno_id):
                     "assunto": e["assunto"],
                     "pagina": e["pagina"],
                     "erros": e["n"],
-                    "material_id": e["material_id"]
-                    if e["mat_estado"] == "liberado"
-                    else None,
+                    "material_id": e["material_id"] if e["mat_estado"] == "liberado" else None,
                 }
             )
     total = xp.total_xp(db, aluno_id)
@@ -114,9 +112,7 @@ def ranking_turma(db, turma_id):
             "SELECT id FROM atividades WHERE turma_id = ? AND estado = 'publicada'",
             (turma_id,),
         ):
-            tents = [
-                t for t in concluidas(db, a["id"]) if t["atividade_id"] == at["id"]
-            ]
+            tents = [t for t in concluidas(db, a["id"]) if t["atividade_id"] == at["id"]]
             if len(tents) >= 2:
                 diffs.append(
                     _pct(tents[-1]["acertos"], tents[-1]["total"])
@@ -152,17 +148,12 @@ def stats_turma(db, turma_id):
     por_atividade, assuntos = [], {}
     medias_primeira = {}
     for at in db.execute(
-        "SELECT id, titulo FROM atividades WHERE turma_id = ? AND estado = 'publicada'"
-        " ORDER BY id",
+        "SELECT id, titulo FROM atividades WHERE turma_id = ? AND estado = 'publicada' ORDER BY id",
         (turma_id,),
     ):
         concluintes, somas = 0, []
         for al in inscritos:
-            tents = [
-                t
-                for t in concluidas(db, al["id"], turma_id)
-                if t["atividade_id"] == at["id"]
-            ]
+            tents = [t for t in concluidas(db, al["id"], turma_id) if t["atividade_id"] == at["id"]]
             if not tents:
                 continue
             concluintes += 1
@@ -192,9 +183,7 @@ def stats_turma(db, turma_id):
         if not meds:
             sem_conclusao.append(al["nome"])
         elif sum(meds) / len(meds) < 0.6:
-            abaixo.append(
-                {"nome": al["nome"], "media": round(sum(meds) / len(meds) * 100)}
-            )
+            abaixo.append({"nome": al["nome"], "media": round(sum(meds) / len(meds) * 100)})
     return {
         "n_inscritos": len(inscritos),
         "por_atividade": por_atividade,

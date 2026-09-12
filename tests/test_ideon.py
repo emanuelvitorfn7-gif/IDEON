@@ -60,9 +60,7 @@ class Base(unittest.TestCase):
         )
         t = self.csrf(cli, "/login")
         cli.post("/login", data={"csrf_token": t, "email": email, "senha": "segredo1"})
-        return self.db.execute(
-            "SELECT id FROM usuarios WHERE email = ?", (email,)
-        ).fetchone()["id"]
+        return self.db.execute("SELECT id FROM usuarios WHERE email = ?", (email,)).fetchone()["id"]
 
     def turma(self, cli_prof, pid):
         t = self.csrf(cli_prof, "/professor/turmas/nova")
@@ -71,9 +69,7 @@ class Base(unittest.TestCase):
             data={"csrf_token": t, "nome": "T", "descricao": ""},
         )
         tid = self.db.execute("SELECT id FROM turmas").fetchone()["id"]
-        cod = self.db.execute(
-            "SELECT codigo FROM turmas WHERE id = ?", (tid,)
-        ).fetchone()["codigo"]
+        cod = self.db.execute("SELECT codigo FROM turmas WHERE id = ?", (tid,)).fetchone()["codigo"]
         return tid, cod
 
     def inscreve(self, cli, cod):
@@ -94,8 +90,7 @@ class Base(unittest.TestCase):
         )
         mid = self.db.execute("SELECT id FROM materiais").fetchone()["id"]
         self.db.execute(
-            "INSERT INTO material_paginas (material_id, numero, texto)"
-            " VALUES (?, 1, 'Base.')",
+            "INSERT INTO material_paginas (material_id, numero, texto) VALUES (?, 1, 'Base.')",
             (mid,),
         )
         self.db.execute(
@@ -107,18 +102,13 @@ class Base(unittest.TestCase):
         for i in range(n_q):
             nova_questao(self.db, atv, i)
         self.db.commit()
-        qs = [
-            r["id"]
-            for r in self.db.execute("SELECT id FROM questoes ORDER BY id").fetchall()
-        ]
+        qs = [r["id"] for r in self.db.execute("SELECT id FROM questoes ORDER BY id").fetchall()]
         return p, a, pid, aid, tid, atv, qs
 
     def tentativa(self, cli, atv, qs, certas):
         t = self.csrf(cli, f"/aluno/atividades/{atv}")
         cli.post(f"/aluno/atividades/{atv}/iniciar", data={"csrf_token": t})
-        tid = self.db.execute("SELECT id FROM tentativas ORDER BY id DESC").fetchone()[
-            "id"
-        ]
+        tid = self.db.execute("SELECT id FROM tentativas ORDER BY id DESC").fetchone()["id"]
         for i, q in enumerate(qs):
             t = self.csrf(cli, f"/aluno/tentativas/{tid}/responder")
             cli.post(
@@ -169,17 +159,11 @@ class TestRascunhos(Base):
 
     def test_publicar_exige_aprovacao_total(self):
         p, _a, _pid, _aid, tid, _atv, _qs = self.cenario()
-        self.db.execute(
-            "INSERT INTO atividades (turma_id, titulo) VALUES (?, 'R')", (tid,)
-        )
-        rid = self.db.execute(
-            "SELECT id FROM atividades WHERE titulo = 'R'"
-        ).fetchone()["id"]
+        self.db.execute("INSERT INTO atividades (turma_id, titulo) VALUES (?, 'R')", (tid,))
+        rid = self.db.execute("SELECT id FROM atividades WHERE titulo = 'R'").fetchone()["id"]
         for i in range(5):
             nova_questao(self.db, rid, i)
-        self.db.execute(
-            "UPDATE questoes SET aprovada = 0 WHERE atividade_id = ?", (rid,)
-        )
+        self.db.execute("UPDATE questoes SET aprovada = 0 WHERE atividade_id = ?", (rid,))
         self.db.commit()
         qids = [
             r["id"]
@@ -194,9 +178,9 @@ class TestRascunhos(Base):
             follow_redirects=True,
         )
         self.assertEqual(
-            self.db.execute(
-                "SELECT estado FROM atividades WHERE id = ?", (rid,)
-            ).fetchone()["estado"],
+            self.db.execute("SELECT estado FROM atividades WHERE id = ?", (rid,)).fetchone()[
+                "estado"
+            ],
             "rascunho",
         )
         for qid in qids:
@@ -205,9 +189,9 @@ class TestRascunhos(Base):
         t = self.csrf(p, f"/professor/atividades/{rid}")
         p.post(f"/professor/atividades/{rid}/publicar", data={"csrf_token": t})
         self.assertEqual(
-            self.db.execute(
-                "SELECT estado FROM atividades WHERE id = ?", (rid,)
-            ).fetchone()["estado"],
+            self.db.execute("SELECT estado FROM atividades WHERE id = ?", (rid,)).fetchone()[
+                "estado"
+            ],
             "publicada",
         )
 
@@ -227,9 +211,7 @@ class TestCorrecaoServidor(Base):
             f"/aluno/tentativas/{tent}/responder",
             data={"csrf_token": t, "questao_id": qs[0], "alternativa": "3"},
         )
-        row = self.db.execute(
-            "SELECT alternativa, correta FROM tentativa_respostas"
-        ).fetchone()
+        row = self.db.execute("SELECT alternativa, correta FROM tentativa_respostas").fetchone()
         self.assertEqual((row["alternativa"], row["correta"]), (3, 0))
 
     def test_sem_alteracao_retroativa(self):
@@ -242,9 +224,7 @@ class TestCorrecaoServidor(Base):
             data={"csrf_token": t, "questao_id": qs[0], "alternativa": "1"},
         )
         self.assertEqual(
-            self.db.execute("SELECT COUNT(*) c FROM tentativa_respostas").fetchone()[
-                "c"
-            ],
+            self.db.execute("SELECT COUNT(*) c FROM tentativa_respostas").fetchone()["c"],
             1,
         )
 

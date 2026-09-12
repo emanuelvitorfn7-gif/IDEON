@@ -61,9 +61,7 @@ Não use conhecimento externo. Se o conteúdo for insuficiente para a quantidade
 pedida, responda {"erro": "conteudo_insuficiente"} em vez de inventar."""
 
 
-def gerar_questoes(
-    paginas, quantidade, rotulo="Página", chave=None, modelo=None, timeout=None
-):
+def gerar_questoes(paginas, quantidade, rotulo="Página", chave=None, modelo=None, timeout=None):
     """Chama a API e devolve a lista bruta de questões (ainda não validada)."""
     cfg = config()
     chave = chave if chave is not None else cfg["chave"]
@@ -115,10 +113,7 @@ def gerar_questoes(
     except (KeyError, IndexError, ValueError, TypeError):
         raise ErroIA("A API retornou um formato inválido. Tente de novo.")
     if isinstance(dados, dict) and dados.get("erro") == "conteudo_insuficiente":
-        raise ErroIA(
-            "Conteúdo insuficiente: o material não sustenta "
-            "essa quantidade de questões."
-        )
+        raise ErroIA("Conteúdo insuficiente: o material não sustenta essa quantidade de questões.")
     if not isinstance(dados, dict) or not isinstance(dados.get("questoes"), list):
         raise ErroIA("A API retornou um formato inválido. Tente de novo.")
     return dados["questoes"]

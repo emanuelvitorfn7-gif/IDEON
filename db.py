@@ -139,9 +139,7 @@ def migrar(db):
             "ALTER TABLE atividades ADD COLUMN material_id INTEGER REFERENCES materiais(id) ON DELETE SET NULL"
         )
     if "estado" not in col_at:
-        db.execute(
-            "ALTER TABLE atividades ADD COLUMN estado TEXT NOT NULL DEFAULT 'rascunho'"
-        )
+        db.execute("ALTER TABLE atividades ADD COLUMN estado TEXT NOT NULL DEFAULT 'rascunho'")
     col_q = {r[1] for r in db.execute("PRAGMA table_info(questoes)").fetchall()}
     for nome, ddl in {
         "alternativas": "TEXT NOT NULL DEFAULT '[]'",

@@ -81,8 +81,7 @@ def concluir_tentativa(db, tentativa_id, aluno_id):
             )
             ganho += cur.rowcount * XP_CONCLUSAO
             for r in db.execute(
-                "SELECT questao_id FROM tentativa_respostas"
-                " WHERE tentativa_id = ? AND correta = 1",
+                "SELECT questao_id FROM tentativa_respostas WHERE tentativa_id = ? AND correta = 1",
                 (tentativa_id,),
             ):
                 cur = db.execute(
@@ -93,8 +92,7 @@ def concluir_tentativa(db, tentativa_id, aluno_id):
                 )
                 ganho += cur.rowcount * XP_ACERTO
             db.execute(
-                "INSERT OR IGNORE INTO dias_ativos (aluno_id, dia)"
-                " VALUES (?, date('now'))",
+                "INSERT OR IGNORE INTO dias_ativos (aluno_id, dia) VALUES (?, date('now'))",
                 (aluno_id,),
             )
         db.execute("COMMIT")

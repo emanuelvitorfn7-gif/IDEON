@@ -53,9 +53,7 @@ def create_app():
         if uid:
             g.usuario = (
                 get_db()
-                .execute(
-                    "SELECT id, nome, email, perfil FROM usuarios WHERE id = ?", (uid,)
-                )
+                .execute("SELECT id, nome, email, perfil FROM usuarios WHERE id = ?", (uid,))
                 .fetchone()
             )
 
@@ -73,9 +71,7 @@ def create_app():
 
         caminho = click.prompt("Banco demo", default="instance/demo.db")
         if os.path.abspath(caminho) == os.path.abspath(app.config["DATABASE_PATH"]):
-            raise click.ClickException(
-                "Recusado: o banco demo não pode ser o banco real."
-            )
+            raise click.ClickException("Recusado: o banco demo não pode ser o banco real.")
         info = demo_mod.carregar(caminho)
         print(f"Demo {info['status']} em: {info['caminho']}")
         print(
@@ -94,9 +90,7 @@ def create_app():
     @app.errorhandler(413)
     def arquivo_grande(_):
         return (
-            render_template(
-                "erro.html", mensagem="Arquivo maior que 10 MB. Envie um PDF menor."
-            ),
+            render_template("erro.html", mensagem="Arquivo maior que 10 MB. Envie um PDF menor."),
             413,
         )
 
@@ -111,16 +105,12 @@ def create_app():
             senha = request.form.get("senha", "")
             perfil = request.form.get("perfil", "")
             if not nome or not email or not senha or perfil not in PERFIS:
-                flash(
-                    "Preencha nome, e-mail, senha e escolha professor ou aluno.", "erro"
-                )
+                flash("Preencha nome, e-mail, senha e escolha professor ou aluno.", "erro")
             elif len(senha) < 6:
                 flash("A senha precisa de ao menos 6 caracteres.", "erro")
             else:
                 db = get_db()
-                existe = db.execute(
-                    "SELECT id FROM usuarios WHERE email = ?", (email,)
-                ).fetchone()
+                existe = db.execute("SELECT id FROM usuarios WHERE email = ?", (email,)).fetchone()
                 if existe:
                     flash("Este e-mail já está cadastrado.", "erro")
                 else:
@@ -141,16 +131,12 @@ def create_app():
             email = request.form.get("email", "").strip().lower()
             senha = request.form.get("senha", "")
             db = get_db()
-            user = db.execute(
-                "SELECT * FROM usuarios WHERE email = ?", (email,)
-            ).fetchone()
+            user = db.execute("SELECT * FROM usuarios WHERE email = ?", (email,)).fetchone()
             if user and check_password_hash(user["senha_hash"], senha):
                 session.clear()
                 session["user_id"] = user["id"]
                 session["csrf_token"] = secrets.token_hex(16)
-                proximo = (
-                    request.args.get("proximo") or request.form.get("proximo") or ""
-                )
+                proximo = request.args.get("proximo") or request.form.get("proximo") or ""
                 if proximo.startswith("/") and not proximo.startswith("//"):
                     return redirect(proximo)
                 return redirect(url_for("painel"))
@@ -177,9 +163,7 @@ def create_app():
     def gerar_codigo(db):
         for _ in range(20):
             codigo = secrets.token_hex(3).upper()
-            if not db.execute(
-                "SELECT id FROM turmas WHERE codigo = ?", (codigo,)
-            ).fetchone():
+            if not db.execute("SELECT id FROM turmas WHERE codigo = ?", (codigo,)).fetchone():
                 return codigo
         raise RuntimeError("Não foi possível gerar um código único.")
 
@@ -259,9 +243,7 @@ def create_app():
             abort(403, description="Você não administra esta turma.")
         return turma
 
-    @app.route(
-        "/professor/turmas/<int:turma_id>/materiais/novo", methods=["GET", "POST"]
-    )
+    @app.route("/professor/turmas/<int:turma_id>/materiais/novo", methods=["GET", "POST"])
     @perfil_required("professor")
     def material_novo(turma_id):
         db = get_db()
@@ -291,12 +273,8 @@ def create_app():
                         [(cur.lastrowid, p["numero"], p["texto"]) for p in paginas],
                     )
                     db.commit()
-                    flash(
-                        f"Material salvo como rascunho ({len(paginas)} seções).", "ok"
-                    )
-                    return redirect(
-                        url_for("material_professor", material_id=cur.lastrowid)
-                    )
+                    flash(f"Material salvo como rascunho ({len(paginas)} seções).", "ok")
+                    return redirect(url_for("material_professor", material_id=cur.lastrowid))
             else:
                 if arquivo is None or not arquivo.filename:
                     flash("Escolha um arquivo PDF de até 10 MB.", "erro")
@@ -314,9 +292,7 @@ def create_app():
                         else:
                             os.makedirs(app.config["UPLOAD_DIR"], exist_ok=True)
                             interno = secrets.token_hex(16) + ".pdf"
-                            with open(
-                                os.path.join(app.config["UPLOAD_DIR"], interno), "wb"
-                            ) as f:
+                            with open(os.path.join(app.config["UPLOAD_DIR"], interno), "wb") as f:
                                 f.write(dados)
                             cur = db.execute(
                                 "INSERT INTO materiais"
@@ -327,10 +303,7 @@ def create_app():
                             db.executemany(
                                 "INSERT INTO material_paginas (material_id, numero, texto)"
                                 " VALUES (?, ?, ?)",
-                                [
-                                    (cur.lastrowid, p["numero"], p["texto"])
-                                    for p in paginas
-                                ],
+                                [(cur.lastrowid, p["numero"], p["texto"]) for p in paginas],
                             )
                             db.commit()
                             flash(
@@ -355,8 +328,7 @@ def create_app():
         if mat is None:
             abort(403, description="Você não administra este material.")
         paginas = db.execute(
-            "SELECT numero, texto FROM material_paginas"
-            " WHERE material_id = ? ORDER BY numero",
+            "SELECT numero, texto FROM material_paginas WHERE material_id = ? ORDER BY numero",
             (material_id,),
         ).fetchall()
         atividades = db.execute(
@@ -399,9 +371,7 @@ def create_app():
     @login_required
     def material_arquivo(material_id):
         db = get_db()
-        mat = db.execute(
-            "SELECT * FROM materiais WHERE id = ?", (material_id,)
-        ).fetchone()
+        mat = db.execute("SELECT * FROM materiais WHERE id = ?", (material_id,)).fetchone()
         if mat is None or not mat["arquivo"]:
             abort(404)
         if g.usuario["perfil"] == "professor":
@@ -417,9 +387,7 @@ def create_app():
         caminho = os.path.join(app.config["UPLOAD_DIR"], mat["arquivo"])
         if not os.path.isfile(caminho):
             abort(404)
-        return send_file(
-            caminho, mimetype="application/pdf", download_name=f"{mat['titulo']}.pdf"
-        )
+        return send_file(caminho, mimetype="application/pdf", download_name=f"{mat['titulo']}.pdf")
 
     # ---------- Questões com IA (professor) ----------
 
@@ -457,9 +425,7 @@ def create_app():
         db.commit()
         return cur.lastrowid
 
-    @app.route(
-        "/professor/materiais/<int:material_id>/questoes/gerar", methods=["GET", "POST"]
-    )
+    @app.route("/professor/materiais/<int:material_id>/questoes/gerar", methods=["GET", "POST"])
     @perfil_required("professor")
     def gerar_questoes(material_id):
         db = get_db()
@@ -467,8 +433,7 @@ def create_app():
         paginas = [
             dict(r)
             for r in db.execute(
-                "SELECT numero, texto FROM material_paginas"
-                " WHERE material_id = ? ORDER BY numero",
+                "SELECT numero, texto FROM material_paginas WHERE material_id = ? ORDER BY numero",
                 (material_id,),
             ).fetchall()
         ]
@@ -477,9 +442,7 @@ def create_app():
         rotulo = "Página" if mat["origem"] == "pdf" else "Seção"
         if request.method == "POST":
             validar_csrf()
-            titulo = (
-                request.form.get("titulo", "").strip() or f"Atividade — {mat['titulo']}"
-            )
+            titulo = request.form.get("titulo", "").strip() or f"Atividade — {mat['titulo']}"
             try:
                 quantidade = int(request.form.get("quantidade", "5"))
             except ValueError:
@@ -507,14 +470,11 @@ def create_app():
                 else:
                     if not validas:
                         flash(
-                            "A IA não retornou nenhuma questão válida: "
-                            + " ".join(erros[:3]),
+                            "A IA não retornou nenhuma questão válida: " + " ".join(erros[:3]),
                             "erro",
                         )
                     else:
-                        aid = _salvar_atividade(
-                            db, mat["turma_id"], material_id, titulo, validas
-                        )
+                        aid = _salvar_atividade(db, mat["turma_id"], material_id, titulo, validas)
                         msg = f"{len(validas)} questões salvas como rascunho."
                         if erros:
                             msg += " Recusadas na validação: " + " ".join(erros[:3])
@@ -558,9 +518,7 @@ def create_app():
             "INSERT INTO material_paginas (material_id, numero, texto) VALUES (?, ?, ?)",
             [(mid, p["numero"], p["texto"]) for p in ia.MATERIAL_DEMO["paginas"]],
         )
-        validas, erros = ia.validar_questoes(
-            ia.QUESTOES_DEMO, ia.MATERIAL_DEMO["paginas"]
-        )
+        validas, erros = ia.validar_questoes(ia.QUESTOES_DEMO, ia.MATERIAL_DEMO["paginas"])
         assert len(erros) == 0, erros
         aid = _salvar_atividade(db, turma_id, mid, "Atividade de demonstração", validas)
         flash("Demonstração pronta: revise, edite e aprove as questões.", "ok")
@@ -576,9 +534,7 @@ def create_app():
         if atv is None:
             abort(403, description="Você não administra esta atividade.")
         if somente_rascunho and atv["estado"] == "publicada":
-            abort(
-                403, description="Atividade publicada: versão preservada, sem edição."
-            )
+            abort(403, description="Atividade publicada: versão preservada, sem edição.")
         return atv
 
     @app.get("/professor/atividades/<int:atividade_id>")
@@ -596,9 +552,7 @@ def create_app():
             except ValueError:
                 q["alts"] = []
             questoes.append(q)
-        return render_template(
-            "professor/atividade_revisao.html", atv=atv, questoes=questoes
-        )
+        return render_template("professor/atividade_revisao.html", atv=atv, questoes=questoes)
 
     @app.post("/professor/questoes/<int:questao_id>/aprovacao")
     @perfil_required("professor")
@@ -614,9 +568,7 @@ def create_app():
         if row is None:
             abort(403, description="Você não administra esta questão.")
         if row["estado"] == "publicada":
-            abort(
-                403, description="Atividade publicada: versão preservada, sem edição."
-            )
+            abort(403, description="Atividade publicada: versão preservada, sem edição.")
         nova = 0 if row["aprovada"] else 1
         db.execute("UPDATE questoes SET aprovada = ? WHERE id = ?", (nova, questao_id))
         db.commit()
@@ -637,9 +589,7 @@ def create_app():
         if row is None:
             abort(403, description="Você não administra esta questão.")
         if row["estado"] == "publicada":
-            abort(
-                403, description="Atividade publicada: versão preservada, sem edição."
-            )
+            abort(403, description="Atividade publicada: versão preservada, sem edição.")
         paginas = (
             [
                 dict(r)
@@ -711,16 +661,11 @@ def create_app():
                 )
                 db.commit()
                 flash(
-                    "Questão atualizada."
-                    + (" Aprovação anterior invalidada." if mudou else ""),
+                    "Questão atualizada." + (" Aprovação anterior invalidada." if mudou else ""),
                     "ok",
                 )
-                return redirect(
-                    url_for("revisar_atividade", atividade_id=row["atividade_id"])
-                )
-        return render_template(
-            "professor/questao_editar.html", q=atual, paginas=paginas
-        )
+                return redirect(url_for("revisar_atividade", atividade_id=row["atividade_id"]))
+        return render_template("professor/questao_editar.html", q=atual, paginas=paginas)
 
     @app.post("/professor/questoes/<int:questao_id>/excluir")
     @perfil_required("professor")
@@ -737,9 +682,7 @@ def create_app():
         if row is None:
             abort(403, description="Você não administra esta questão.")
         if row["estado"] == "publicada":
-            abort(
-                403, description="Atividade publicada: versão preservada, sem edição."
-            )
+            abort(403, description="Atividade publicada: versão preservada, sem edição.")
         db.execute("DELETE FROM questoes WHERE id = ?", (questao_id,))
         db.commit()
         flash("Questão excluída.", "ok")
@@ -764,8 +707,7 @@ def create_app():
             flash("Aprove todas as questões antes de publicar.", "erro")
         else:
             db.execute(
-                "UPDATE atividades SET estado = 'publicada', publicada = 1"
-                " WHERE id = ?",
+                "UPDATE atividades SET estado = 'publicada', publicada = 1 WHERE id = ?",
                 (atividade_id,),
             )
             db.commit()
@@ -796,9 +738,7 @@ def create_app():
             validar_csrf()
             codigo = request.form.get("codigo", "").strip().upper()
             db = get_db()
-            turma = db.execute(
-                "SELECT * FROM turmas WHERE codigo = ?", (codigo,)
-            ).fetchone()
+            turma = db.execute("SELECT * FROM turmas WHERE codigo = ?", (codigo,)).fetchone()
             if turma is None:
                 flash("Código não encontrado. Confira com seu professor.", "erro")
             elif db.execute(
@@ -832,8 +772,7 @@ def create_app():
             (turma_id,),
         ).fetchall()
         materiais = db.execute(
-            "SELECT * FROM materiais WHERE turma_id = ? AND estado = 'liberado'"
-            " ORDER BY id DESC",
+            "SELECT * FROM materiais WHERE turma_id = ? AND estado = 'liberado' ORDER BY id DESC",
             (turma_id,),
         ).fetchall()
         return render_template(
@@ -856,12 +795,9 @@ def create_app():
             (g.usuario["id"], material_id),
         ).fetchone()
         if mat is None:
-            abort(
-                403, description="Material disponível só para inscritos após liberação."
-            )
+            abort(403, description="Material disponível só para inscritos após liberação.")
         paginas = db.execute(
-            "SELECT numero, texto FROM material_paginas"
-            " WHERE material_id = ? ORDER BY numero",
+            "SELECT numero, texto FROM material_paginas WHERE material_id = ? ORDER BY numero",
             (material_id,),
         ).fetchall()
         return render_template("aluno/material.html", mat=mat, paginas=paginas)
@@ -918,9 +854,7 @@ def create_app():
             " ORDER BY id DESC",
             (atividade_id, g.usuario["id"]),
         ).fetchall()
-        return render_template(
-            "aluno/atividade.html", atv=atv, aberta=aberta, historico=historico
-        )
+        return render_template("aluno/atividade.html", atv=atv, aberta=aberta, historico=historico)
 
     @app.post("/aluno/atividades/<int:atividade_id>/iniciar")
     @perfil_required("aluno")
@@ -945,9 +879,7 @@ def create_app():
         db.commit()
         return redirect(url_for("responder", tentativa_id=cur.lastrowid))
 
-    @app.route(
-        "/aluno/tentativas/<int:tentativa_id>/responder", methods=["GET", "POST"]
-    )
+    @app.route("/aluno/tentativas/<int:tentativa_id>/responder", methods=["GET", "POST"])
     @perfil_required("aluno")
     def responder(tentativa_id):
         import sqlite3
@@ -967,9 +899,7 @@ def create_app():
             if atual is None or qid != atual["id"] or escolha not in (0, 1, 2, 3):
                 flash("Resposta inválida.", "erro")
             else:
-                gab = db.execute(
-                    "SELECT correta FROM questoes WHERE id = ?", (qid,)
-                ).fetchone()
+                gab = db.execute("SELECT correta FROM questoes WHERE id = ?", (qid,)).fetchone()
                 try:
                     db.execute(
                         "INSERT INTO tentativa_respostas"
@@ -985,9 +915,7 @@ def create_app():
                     db.commit()
                 except sqlite3.IntegrityError:
                     flash("Esta questão já foi respondida.", "erro")
-                return redirect(
-                    url_for("feedback", tentativa_id=tentativa_id, questao_id=qid)
-                )
+                return redirect(url_for("feedback", tentativa_id=tentativa_id, questao_id=qid))
         atual = _proxima_questao(db, tentativa_id)
         if atual is None:
             return redirect(url_for("resultado", tentativa_id=tentativa_id))
@@ -1035,9 +963,7 @@ def create_app():
             if feitas < tent["total"]:
                 return redirect(url_for("responder", tentativa_id=tentativa_id))
             try:
-                _acertos, _total, ganho = xp.concluir_tentativa(
-                    db, tentativa_id, g.usuario["id"]
-                )
+                _acertos, _total, ganho = xp.concluir_tentativa(db, tentativa_id, g.usuario["id"])
             except ValueError as e:
                 flash(str(e), "erro")
                 return redirect(url_for("responder", tentativa_id=tentativa_id))

@@ -27,9 +27,7 @@ def carregar(caminho):
     db.execute("PRAGMA foreign_keys = ON")
     db.executescript(SCHEMA)
     migrar(db)
-    if db.execute(
-        "SELECT id FROM usuarios WHERE email = ?", ("demo.prof@exemplo.com",)
-    ).fetchone():
+    if db.execute("SELECT id FROM usuarios WHERE email = ?", ("demo.prof@exemplo.com",)).fetchone():
         db.close()
         return {"status": "existente", "caminho": caminho}
 
@@ -53,8 +51,7 @@ def carregar(caminho):
             (nome, email, generate_password_hash(SENHA)),
         ).lastrowid
     turma = db.execute(
-        "INSERT INTO turmas (nome, descricao, codigo, professor_id)"
-        " VALUES (?, ?, ?, ?)",
+        "INSERT INTO turmas (nome, descricao, codigo, professor_id) VALUES (?, ?, ?, ?)",
         (
             "Ciências 101 (demonstração)",
             "Turma fictícia para demonstração.",
@@ -63,9 +60,7 @@ def carregar(caminho):
         ),
     ).lastrowid
     for email, uid in alunos.items():
-        db.execute(
-            "INSERT INTO inscricoes (turma_id, aluno_id) VALUES (?, ?)", (turma, uid)
-        )
+        db.execute("INSERT INTO inscricoes (turma_id, aluno_id) VALUES (?, ?)", (turma, uid))
     mat = db.execute(
         "INSERT INTO materiais (turma_id, professor_id, titulo, origem, estado)"
         " VALUES (?, ?, ?, 'texto', 'liberado')",
@@ -110,9 +105,9 @@ def carregar(caminho):
             (atv, uid, len(qids)),
         ).lastrowid
         for qid, alt in zip(qids, respostas):
-            correta = db.execute(
-                "SELECT correta FROM questoes WHERE id = ?", (qid,)
-            ).fetchone()["correta"]
+            correta = db.execute("SELECT correta FROM questoes WHERE id = ?", (qid,)).fetchone()[
+                "correta"
+            ]
             db.execute(
                 "INSERT INTO tentativa_respostas (tentativa_id, questao_id,"
                 " alternativa, correta) VALUES (?, ?, ?, ?)",
