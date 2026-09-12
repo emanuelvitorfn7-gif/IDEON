@@ -1,0 +1,186 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Ideon — design system
+ * Paleta "Abyssal": fundo violeta profundo, acentos aura (violeta) e nova (azul).
+ * Todas as cores em oklch e usadas somente via tokens semânticos.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-abyss: var(--abyss);
+  --color-deep: var(--deep);
+  --color-ocean: var(--ocean);
+  --color-aura: var(--aura);
+  --color-nova: var(--nova);
+  --color-mist: var(--mist);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-chart-1: var(--aura);
+  --color-chart-2: var(--nova);
+  --color-chart-3: var(--ocean);
+  --color-chart-4: var(--success);
+  --color-chart-5: var(--warning);
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+
+  --abyss: oklch(0.15 0.035 285);
+  --deep: oklch(0.21 0.05 288);
+  --ocean: oklch(0.28 0.095 285);
+  --aura: oklch(0.65 0.235 303);
+  --nova: oklch(0.62 0.19 259);
+  --mist: oklch(0.97 0.013 295);
+  --success: oklch(0.72 0.16 160);
+  --warning: oklch(0.78 0.15 75);
+  --danger: oklch(0.65 0.2 20);
+
+  --background: var(--abyss);
+  --foreground: var(--mist);
+  --card: var(--deep);
+  --card-foreground: var(--mist);
+  --popover: var(--deep);
+  --popover-foreground: var(--mist);
+  --primary: var(--aura);
+  --primary-foreground: var(--abyss);
+  --secondary: var(--ocean);
+  --secondary-foreground: var(--mist);
+  --muted: oklch(0.24 0.05 288);
+  --muted-foreground: oklch(0.68 0.035 292);
+  --accent: var(--nova);
+  --accent-foreground: var(--mist);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--mist);
+  --border: oklch(0.97 0.013 295 / 10%);
+  --input: oklch(0.97 0.013 295 / 14%);
+  --ring: var(--aura);
+
+  --gradient-brand: linear-gradient(135deg, var(--aura), var(--nova));
+  --gradient-shell: radial-gradient(
+    120% 80% at 80% -10%,
+    oklch(0.28 0.095 285) 0%,
+    oklch(0.21 0.05 288) 45%,
+    oklch(0.15 0.035 285) 100%
+  );
+  --shadow-aura: 0 18px 48px -22px oklch(0.65 0.235 303 / 45%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    background-image: var(--gradient-shell);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@utility brand-gradient {
+  background-image: var(--gradient-brand);
+}
+
+@utility glass-panel {
+  background-color: color-mix(in oklab, var(--deep) 45%, transparent);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+}
+
+@utility aura-pulse {
+  animation: auraPulse 6s ease-in-out infinite;
+}
+
+@utility fill-bar {
+  animation: fillBar 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility rise-in {
+  animation: riseIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes auraPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes fillBar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

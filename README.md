@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ideon
 
 **Problema:** o professor tem PDFs e textos, mas transformá-los em atividades interativas dá trabalho; o aluno decora sem feedback.
@@ -109,3 +110,29 @@ simples sobre erros por assunto).
 
 Fora do versionamento (ver `.gitignore`): `.env` e segredos, `instance/` (bancos locais
 `*.db`/`*.sqlite` e `uploads/` privados), `.venv/` e `__pycache__/`.
+=======
+# Pixel Perfect Replication
+
+Implement exactly the screenshot and nothing else
+
+This project was built with [Lovable](https://lovable.dev).
+
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/433782a7-6db6-45e4-9185-9a1feabbcdfd).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+
+```sh
+git clone <this-repository-url>
+cd <repository-name>
+npm i
+npm run dev
+```
+>>>>>>> 2a30805 (Projeto parte do professor)
