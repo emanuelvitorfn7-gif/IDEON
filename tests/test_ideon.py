@@ -4,6 +4,7 @@ Roda com: python -m unittest discover -s tests
 Cobre: permissões, bloqueio de rascunhos, correção no servidor,
 XP sem duplicação e cálculo dos indicadores.
 """
+
 import json
 import os
 import sqlite3
@@ -22,7 +23,8 @@ def nova_questao(db, atv, i, assunto="Ass"):
         "INSERT INTO questoes (atividade_id, enunciado, resposta, alternativas,"
         " correta, explicacao, assunto, pagina, evidencia, aprovada)"
         " VALUES (?,?,?,?,?,?,?,?,?,1)",
-        (atv, f"Q{i}?", "Certa", json.dumps(alts), 0, f"Exp{i}", assunto, 1, "Base."))
+        (atv, f"Q{i}?", "Certa", json.dumps(alts), 0, f"Exp{i}", assunto, 1, "Base."),
+    )
 
 
 class Base(unittest.TestCase):
@@ -46,20 +48,32 @@ class Base(unittest.TestCase):
 
     def conta(self, cli, email, perfil):
         t = self.csrf(cli, "/cadastro")
-        cli.post("/cadastro", data={"csrf_token": t, "nome": email.split("@")[0],
-                                    "email": email, "senha": "segredo1", "perfil": perfil})
+        cli.post(
+            "/cadastro",
+            data={
+                "csrf_token": t,
+                "nome": email.split("@")[0],
+                "email": email,
+                "senha": "segredo1",
+                "perfil": perfil,
+            },
+        )
         t = self.csrf(cli, "/login")
         cli.post("/login", data={"csrf_token": t, "email": email, "senha": "segredo1"})
         return self.db.execute(
-            "SELECT id FROM usuarios WHERE email = ?", (email,)).fetchone()["id"]
+            "SELECT id FROM usuarios WHERE email = ?", (email,)
+        ).fetchone()["id"]
 
     def turma(self, cli_prof, pid):
         t = self.csrf(cli_prof, "/professor/turmas/nova")
-        cli_prof.post("/professor/turmas/nova",
-                      data={"csrf_token": t, "nome": "T", "descricao": ""})
+        cli_prof.post(
+            "/professor/turmas/nova",
+            data={"csrf_token": t, "nome": "T", "descricao": ""},
+        )
         tid = self.db.execute("SELECT id FROM turmas").fetchone()["id"]
         cod = self.db.execute(
-            "SELECT codigo FROM turmas WHERE id = ?", (tid,)).fetchone()["codigo"]
+            "SELECT codigo FROM turmas WHERE id = ?", (tid,)
+        ).fetchone()["codigo"]
         return tid, cod
 
     def inscreve(self, cli, cod):
@@ -75,38 +89,53 @@ class Base(unittest.TestCase):
         self.inscreve(a, cod)
         self.db.execute(
             "INSERT INTO materiais (turma_id, professor_id, titulo, origem, estado)"
-            " VALUES (?, ?, 'M', 'texto', 'liberado')", (tid, pid))
+            " VALUES (?, ?, 'M', 'texto', 'liberado')",
+            (tid, pid),
+        )
         mid = self.db.execute("SELECT id FROM materiais").fetchone()["id"]
-        self.db.execute("INSERT INTO material_paginas (material_id, numero, texto)"
-                        " VALUES (?, 1, 'Base.')", (mid,))
+        self.db.execute(
+            "INSERT INTO material_paginas (material_id, numero, texto)"
+            " VALUES (?, 1, 'Base.')",
+            (mid,),
+        )
         self.db.execute(
             "INSERT INTO atividades (turma_id, material_id, titulo, estado, publicada)"
-            " VALUES (?, ?, 'A', 'publicada', 1)", (tid, mid))
+            " VALUES (?, ?, 'A', 'publicada', 1)",
+            (tid, mid),
+        )
         atv = self.db.execute("SELECT id FROM atividades").fetchone()["id"]
         for i in range(n_q):
             nova_questao(self.db, atv, i)
         self.db.commit()
-        qs = [r["id"] for r in self.db.execute(
-            "SELECT id FROM questoes ORDER BY id").fetchall()]
+        qs = [
+            r["id"]
+            for r in self.db.execute("SELECT id FROM questoes ORDER BY id").fetchall()
+        ]
         return p, a, pid, aid, tid, atv, qs
 
     def tentativa(self, cli, atv, qs, certas):
         t = self.csrf(cli, f"/aluno/atividades/{atv}")
         cli.post(f"/aluno/atividades/{atv}/iniciar", data={"csrf_token": t})
-        tid = self.db.execute(
-            "SELECT id FROM tentativas ORDER BY id DESC").fetchone()["id"]
+        tid = self.db.execute("SELECT id FROM tentativas ORDER BY id DESC").fetchone()[
+            "id"
+        ]
         for i, q in enumerate(qs):
             t = self.csrf(cli, f"/aluno/tentativas/{tid}/responder")
-            cli.post(f"/aluno/tentativas/{tid}/responder",
-                     data={"csrf_token": t, "questao_id": q,
-                           "alternativa": "0" if i in certas else "1"})
+            cli.post(
+                f"/aluno/tentativas/{tid}/responder",
+                data={
+                    "csrf_token": t,
+                    "questao_id": q,
+                    "alternativa": "0" if i in certas else "1",
+                },
+            )
         cli.get(f"/aluno/tentativas/{tid}/resultado")
         return tid
 
     def xp_de(self, aid):
         return self.db.execute(
-            "SELECT COALESCE(SUM(xp),0) t FROM xp_eventos WHERE aluno_id = ?",
-            (aid,)).fetchone()["t"]
+            "SELECT COALESCE(SUM(xp),0) t FROM xp_eventos WHERE aluno_id = ?", (aid,)
+        ).fetchone()["t"]
 
 
 class TestPermissoes(Base):
@@ -141,30 +170,46 @@ class TestRascunhos(Base):
     def test_publicar_exige_aprovacao_total(self):
         p, _a, _pid, _aid, tid, _atv, _qs = self.cenario()
         self.db.execute(
-            "INSERT INTO atividades (turma_id, titulo) VALUES (?, 'R')", (tid,))
+            "INSERT INTO atividades (turma_id, titulo) VALUES (?, 'R')", (tid,)
+        )
         rid = self.db.execute(
-            "SELECT id FROM atividades WHERE titulo = 'R'").fetchone()["id"]
+            "SELECT id FROM atividades WHERE titulo = 'R'"
+        ).fetchone()["id"]
         for i in range(5):
             nova_questao(self.db, rid, i)
-        self.db.execute("UPDATE questoes SET aprovada = 0 WHERE atividade_id = ?",
-                        (rid,))
+        self.db.execute(
+            "UPDATE questoes SET aprovada = 0 WHERE atividade_id = ?", (rid,)
+        )
         self.db.commit()
-        qids = [r["id"] for r in self.db.execute(
-            "SELECT id FROM questoes WHERE atividade_id = ?", (rid,)).fetchall()]
+        qids = [
+            r["id"]
+            for r in self.db.execute(
+                "SELECT id FROM questoes WHERE atividade_id = ?", (rid,)
+            ).fetchall()
+        ]
         t = self.csrf(p, f"/professor/atividades/{rid}")
-        p.post(f"/professor/atividades/{rid}/publicar", data={"csrf_token": t},
-               follow_redirects=True)
-        self.assertEqual(self.db.execute(
-            "SELECT estado FROM atividades WHERE id = ?", (rid,)).fetchone()["estado"],
-            "rascunho")
+        p.post(
+            f"/professor/atividades/{rid}/publicar",
+            data={"csrf_token": t},
+            follow_redirects=True,
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT estado FROM atividades WHERE id = ?", (rid,)
+            ).fetchone()["estado"],
+            "rascunho",
+        )
         for qid in qids:
             t = self.csrf(p, f"/professor/atividades/{rid}")
             p.post(f"/professor/questoes/{qid}/aprovacao", data={"csrf_token": t})
         t = self.csrf(p, f"/professor/atividades/{rid}")
         p.post(f"/professor/atividades/{rid}/publicar", data={"csrf_token": t})
-        self.assertEqual(self.db.execute(
-            "SELECT estado FROM atividades WHERE id = ?", (rid,)).fetchone()["estado"],
-            "publicada")
+        self.assertEqual(
+            self.db.execute(
+                "SELECT estado FROM atividades WHERE id = ?", (rid,)
+            ).fetchone()["estado"],
+            "publicada",
+        )
 
 
 class TestCorrecaoServidor(Base):
@@ -178,10 +223,13 @@ class TestCorrecaoServidor(Base):
         self.assertNotIn("Exp0", html)
         self.assertNotIn("correta", html)
         t = self.csrf(a, f"/aluno/tentativas/{tent}/responder")
-        a.post(f"/aluno/tentativas/{tent}/responder",
-               data={"csrf_token": t, "questao_id": qs[0], "alternativa": "3"})
+        a.post(
+            f"/aluno/tentativas/{tent}/responder",
+            data={"csrf_token": t, "questao_id": qs[0], "alternativa": "3"},
+        )
         row = self.db.execute(
-            "SELECT alternativa, correta FROM tentativa_respostas").fetchone()
+            "SELECT alternativa, correta FROM tentativa_respostas"
+        ).fetchone()
         self.assertEqual((row["alternativa"], row["correta"]), (3, 0))
 
     def test_sem_alteracao_retroativa(self):
@@ -189,10 +237,16 @@ class TestCorrecaoServidor(Base):
         self.tentativa(a, atv, qs, {0})
         tent = self.db.execute("SELECT id FROM tentativas").fetchone()["id"]
         t = self.csrf(a, f"/aluno/tentativas/{tent}/responder")
-        a.post(f"/aluno/tentativas/{tent}/responder",
-               data={"csrf_token": t, "questao_id": qs[0], "alternativa": "1"})
-        self.assertEqual(self.db.execute(
-            "SELECT COUNT(*) c FROM tentativa_respostas").fetchone()["c"], 1)
+        a.post(
+            f"/aluno/tentativas/{tent}/responder",
+            data={"csrf_token": t, "questao_id": qs[0], "alternativa": "1"},
+        )
+        self.assertEqual(
+            self.db.execute("SELECT COUNT(*) c FROM tentativa_respostas").fetchone()[
+                "c"
+            ],
+            1,
+        )
 
 
 class TestXP(Base):
@@ -210,11 +264,13 @@ class TestXP(Base):
 class TestIndicadores(Base):
     def test_evolucao_ranking_e_stats(self):
         import paineis
+
         _p, a, _pid, aid, tid, atv, qs = self.cenario(n_q=10)
-        self.tentativa(a, atv, qs, {0, 1, 2, 3})          # 40%
+        self.tentativa(a, atv, qs, {0, 1, 2, 3})  # 40%
         self.tentativa(a, atv, qs, {0, 1, 2, 3, 4, 5, 6})  # 70%
         with self.app.app_context():
             from db import get_db
+
             db = get_db()
             res = paineis.resumo_aluno(db, aid)
             self.assertEqual(res["evolucao"][0]["diff"], 30)

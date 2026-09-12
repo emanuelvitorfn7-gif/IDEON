@@ -1,4 +1,5 @@
 """Autenticação, CSRF e permissões (helpers usados pelas rotas)."""
+
 import secrets
 from functools import wraps
 

@@ -1,4 +1,5 @@
 """Conexão SQLite e inicialização do banco (sem apagar dados existentes)."""
+
 import os
 import sqlite3
 
@@ -129,12 +130,18 @@ def migrar(db):
     if "descricao" not in colunas:
         db.execute("ALTER TABLE turmas ADD COLUMN descricao TEXT NOT NULL DEFAULT ''")
     if "professor_id" not in colunas:
-        db.execute("ALTER TABLE turmas ADD COLUMN professor_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL")
+        db.execute(
+            "ALTER TABLE turmas ADD COLUMN professor_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL"
+        )
     col_at = {r[1] for r in db.execute("PRAGMA table_info(atividades)").fetchall()}
     if "material_id" not in col_at:
-        db.execute("ALTER TABLE atividades ADD COLUMN material_id INTEGER REFERENCES materiais(id) ON DELETE SET NULL")
+        db.execute(
+            "ALTER TABLE atividades ADD COLUMN material_id INTEGER REFERENCES materiais(id) ON DELETE SET NULL"
+        )
     if "estado" not in col_at:
-        db.execute("ALTER TABLE atividades ADD COLUMN estado TEXT NOT NULL DEFAULT 'rascunho'")
+        db.execute(
+            "ALTER TABLE atividades ADD COLUMN estado TEXT NOT NULL DEFAULT 'rascunho'"
+        )
     col_q = {r[1] for r in db.execute("PRAGMA table_info(questoes)").fetchall()}
     for nome, ddl in {
         "alternativas": "TEXT NOT NULL DEFAULT '[]'",

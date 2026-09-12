@@ -1,4 +1,5 @@
 """Extração de texto de PDFs e divisão de texto colado em seções."""
+
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
