@@ -185,36 +185,66 @@ export const publicarAtividade = (
 ) => salvarAtividade({ ...input, publicada: true });
 
 export async function listarAlunosDaTurma(turmaId: string) {
-  const { data, error } = await supabase
+  const { data: matriculas, error: erroMatriculas } = await supabase
     .from("matriculas")
-    .select("aluno_id, profiles:aluno_id (id, nome, xp, nivel, sequencia)")
+    .select("aluno_id")
     .eq("turma_id", turmaId);
-  if (error) throw error;
-  return (data ?? []).map((m) => {
-    const p = (
-      m as unknown as {
-        profiles: { id: string; nome: string; xp: number; nivel: number; sequencia: number } | null;
-      }
-    ).profiles;
-    return p ?? { id: m.aluno_id, nome: "Aluno", xp: 0, nivel: 1, sequencia: 0 };
-  });
+
+  if (erroMatriculas) throw erroMatriculas;
+
+  if (!matriculas || matriculas.length === 0) {
+    return [];
+  }
+
+  const idsAlunos = matriculas.map((m) => m.aluno_id);
+
+  const { data: perfis, error: erroPerfis } = await supabase
+    .from("profiles")
+    .select("id, nome, xp, nivel, sequencia")
+    .in("id", idsAlunos);
+
+  if (erroPerfis) throw erroPerfis;
+
+  return (
+    perfis?.map((perfil) => ({
+      id: perfil.id,
+      nome: perfil.nome,
+      xp: perfil.xp ?? 0,
+      nivel: perfil.nivel ?? 1,
+      sequencia: perfil.sequencia ?? 0,
+    })) ?? []
+  );
 }
 
 export async function listarSubmissoesDaTurma(turmaId: string) {
   const { data: atividades, error } = await supabase
     .from("atividades")
-    .select("id, titulo, xp, publicada")
-    .eq("turma_id", turmaId);
+    .select("id, titulo, xp, publicada, criado_em")
+    .eq("turma_id", turmaId)
+    .order("criado_em", { ascending: true });
+
   if (error) throw error;
+
   const ids = (atividades ?? []).map((a) => a.id);
-  if (ids.length === 0) return { atividades: atividades ?? [], submissoes: [] };
+
+  if (ids.length === 0) {
+    return {
+      atividades: atividades ?? [],
+      submissoes: [],
+    };
+  }
 
   const { data: submissoes, error: erroSub } = await supabase
     .from("submissoes")
     .select("*")
     .in("atividade_id", ids);
+
   if (erroSub) throw erroSub;
-  return { atividades: atividades ?? [], submissoes: submissoes ?? [] };
+
+  return {
+    atividades: atividades ?? [],
+    submissoes: submissoes ?? [],
+  };
 }
 
 export function agregarAssuntos(submissoes: Array<{ detalhes: unknown }>) {
