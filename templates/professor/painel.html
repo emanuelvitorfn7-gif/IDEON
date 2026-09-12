@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Painel do professor · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <div class="linha"><h1>Suas turmas</h1><a class="btn primario" href="{{ url_for('turma_nova') }}">Nova turma</a></div>
+  {% if turmas %}
+    <ul class="lista">
+      {% for t in turmas %}
+      <li><a href="{{ url_for('turma_professor', turma_id=t.id) }}"><strong>{{ t.nome }}</strong></a>
+        <span class="meta">código {{ t.codigo }} · {{ t.total_alunos }} aluno(s)</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Nenhuma turma ainda. Crie a primeira e compartilhe o código.</p>
+  {% endif %}
+</section>
+{% endblock %}

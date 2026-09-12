@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ "Acertou!" if resp.correta else "Errou" }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1 class="{% if resp.correta %}ok{% else %}erro-t{% endif %}">
+    {{ "Você acertou!" if resp.correta else "Não foi dessa vez." }}</h1>
+  <p><strong>{{ q.enunciado }}</strong></p>
+  <ol type="A">
+    {% for a in alts %}
+      <li{% if loop.index0 == q.correta %} class="certa"{% endif %}{% if loop.index0 == resp.alternativa and not resp.correta %} class="errada"{% endif %}>{{ a }}</li>
+    {% endfor %}
+  </ol>
+  <p>Sua resposta: {{ "ABCD"[resp.alternativa] }} · Gabarito: {{ "ABCD"[q.correta] }}</p>
+  <p>{{ q.explicacao }}</p>
+  <p class="meta">Referência: página/seção {{ q.pagina }} do material · “{{ q.evidencia }}”</p>
+  <div class="acoes">
+    <a class="btn primario" href="{{ url_for('responder', tentativa_id=tent.id) }}">Próxima</a>
+  </div>
+</section>
+{% endblock %}

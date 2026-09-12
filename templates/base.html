@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Ideon{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo">
+    <nav class="nav">
+      <a class="logo" href="{{ url_for('index') }}">Ideon</a>
+      <div class="links">
+        {% if g.usuario %}
+          <a href="{{ url_for('painel') }}">Painel</a>
+          <span class="quem">{{ g.usuario.nome }} · {{ g.usuario.perfil }}</span>
+          <form class="sair" method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Sair</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('index') }}">Início</a>
+          <a href="{{ url_for('login') }}">Entrar</a>
+          <a href="{{ url_for('cadastro') }}">Cadastrar</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+  <main class="container" id="conteudo">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        <div class="flashes">
+          {% for cat, msg in msgs %}<p class="flash {{ cat }}">{{ msg }}</p>{% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="rodape">
+    <p>Ideon · aprender jogando</p>
+  </footer>
+  <script>
+    document.addEventListener("submit", function (ev) {
+      var btn = ev.target.querySelector('button[type="submit"]');
+      if (btn && !btn.disabled) {
+        btn.classList.add("carregando");
+        btn.disabled = true;
+        if (btn.dataset.texto === undefined) btn.dataset.texto = btn.textContent;
+        btn.textContent = "Enviando…";
+        setTimeout(function () {
+          btn.disabled = false;
+          btn.classList.remove("carregando");
+          btn.textContent = btn.dataset.texto;
+        }, 8000);
+      }
+    });
+  </script>
+</body>
+</html>

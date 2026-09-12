@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Resultado · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Resultado: {{ tent.acertos }}/{{ tent.total }}</h1>
+  <p class="meta">Concluída em {{ tent.concluida_em }}</p>
+  <p class="meta">Só a primeira conclusão gera XP (+20 e +10 por acerto).
+    Novas tentativas servem para revisar.</p>
+  <div class="acoes">
+    <a class="btn primario" href="{{ url_for('atividade_aluno', atividade_id=tent.atividade_id) }}">Voltar à atividade</a>
+  </div>
+</section>
+{% endblock %}

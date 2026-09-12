@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Entrar · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Entrar</h1>
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="proximo" value="{{ proximo }}">
+    <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
+    <label>Senha<input name="senha" type="password" required autocomplete="current-password"></label>
+    <button class="btn primario" type="submit">Entrar</button>
+  </form>
+  <p class="meta">Sem conta? <a href="{{ url_for('cadastro') }}">Cadastre-se</a>.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,126 @@
+:root {
+  --fundo: #0c0a14;
+  --painel: #151122;
+  --texto: #f2efff;
+  --suave: #c3bde0;
+  --destaque: #8b5cf6;
+  --destaque-2: #a78bfa;
+  --borda: #2a2440;
+  --ok: #4ade80;
+  --erro: #f87171;
+  --raio: 12px;
+  --espaco: 1rem;
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.65;
+}
+h1, h2, h3 { line-height: 1.25; }
+h1 { font-size: clamp(1.5rem, 4vw, 2.2rem); }
+h2 { font-size: 1.2rem; margin-top: 2rem; }
+.pular {
+  position: absolute; left: -999px; top: 0; background: var(--destaque);
+  color: #fff; padding: 0.6rem 1rem; border-radius: 0 0 8px 0; z-index: 10;
+}
+.pular:focus { left: 0; }
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--destaque-2); outline-offset: 2px;
+}
+.topo { border-bottom: 1px solid var(--borda); background: #100d1c; }
+.nav {
+  max-width: 960px; margin: 0 auto; padding: 0.9rem 1rem;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 0.8rem; flex-wrap: wrap;
+}
+.logo { color: var(--texto); font-weight: 800; font-size: 1.4rem; text-decoration: none; }
+.logo::after { content: " ◆"; color: var(--destaque-2); }
+.links { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.links a { color: var(--suave); text-decoration: none; }
+.links a:hover { color: var(--texto); text-decoration: underline; }
+.container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.hero { background: var(--painel); border: 1px solid var(--borda); border-radius: 16px; padding: 2rem; }
+.hero h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.15; margin: 0.8rem 0; }
+.hero em { color: var(--destaque-2); font-style: normal; }
+.hero p { color: var(--suave); max-width: 60ch; }
+.tag {
+  display: inline-block; font-size: 0.8rem; color: var(--texto);
+  border: 1px solid var(--destaque); border-radius: 999px; padding: 0.2rem 0.8rem;
+}
+.passos {
+  display: flex; gap: 0.4rem; flex-wrap: wrap; list-style: none;
+  padding: 0; margin: 0 0 1.2rem; font-size: 0.85rem; color: var(--suave);
+}
+.passos li::after { content: " → "; color: var(--borda); }
+.passos li:last-child::after { content: ""; }
+.passos .atual { color: var(--texto); font-weight: 700; }
+.acoes { display: flex; gap: 0.8rem; align-items: center; margin-top: 1.2rem; flex-wrap: wrap; }
+.acoes form { margin: 0; }
+.btn {
+  display: inline-block; text-decoration: none; border-radius: 10px;
+  padding: 0.7rem 1.2rem; font-weight: 700; border: 1px solid transparent;
+  cursor: pointer; font-size: 1rem; background: transparent; color: var(--texto);
+}
+.primario { background: var(--destaque); color: #fff; }
+.primario:hover { background: var(--destaque-2); }
+.btn.fantasma { border-color: var(--destaque); color: var(--texto); }
+.btn.fantasma:hover { border-color: var(--destaque-2); }
+.btn[disabled], .btn.carregando { opacity: 0.6; cursor: wait; }
+.meta { color: var(--suave); font-size: 0.9rem; }
+.grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.cartao { background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; padding: 1.2rem; }
+.cartao h2 { margin: 0 0 0.4rem; font-size: 1.1rem; color: var(--destaque-2); }
+.cartao p { margin: 0; color: var(--suave); }
+.rodape { text-align: center; color: var(--suave); border-top: 1px solid var(--borda); padding: 1rem; }
+.quem { color: var(--suave); font-size: 0.85rem; }
+.sair { display: inline; margin: 0; }
+.sair button {
+  background: transparent; color: var(--suave); border: 1px solid var(--borda);
+  border-radius: 8px; padding: 0.3rem 0.7rem; cursor: pointer; font: inherit;
+}
+.sair button:hover { color: var(--texto); border-color: var(--destaque); }
+.flashes { margin-bottom: 1rem; }
+.flash { border-radius: 10px; padding: 0.7rem 1rem; margin: 0 0 0.6rem; }
+.flash.ok { background: #14331f; border: 1px solid #22c55e; color: #d9fbe4; }
+.flash.erro { background: #3a1420; border: 1px solid #f43f5e; color: #ffe0e7; }
+.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: 16px; padding: 1.5rem; }
+.painel h1 { margin-top: 0; }
+.painel a { color: var(--destaque-2); }
+.vazio { color: var(--suave); border: 1px dashed var(--borda); border-radius: var(--raio); padding: 1rem; }
+.linha { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.form { display: grid; gap: 1rem; max-width: 480px; margin-top: 1rem; }
+.form label { display: grid; gap: 0.35rem; color: var(--suave); font-weight: 600; }
+.form input, .form select, .form textarea {
+  background: var(--fundo); color: var(--texto); border: 1px solid var(--borda);
+  border-radius: 10px; padding: 0.7rem; font: inherit; font-weight: 400; width: 100%;
+}
+.form button { justify-self: start; border: none; }
+.lista { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.6rem; }
+ol.lista { list-style: decimal; padding-left: 1.5rem; }
+.lista li { border: 1px solid var(--borda); border-radius: 10px; padding: 0.8rem 1rem; background: var(--fundo); }
+.codigo { color: var(--destaque-2); letter-spacing: 0.1em; }
+.pagina { border: 1px solid var(--borda); border-radius: 10px; padding: 1rem; margin-top: 1rem; background: var(--fundo); }
+.pagina h3 { margin: 0 0 0.5rem; color: var(--destaque-2); font-size: 0.95rem; }
+.texto-extraido { white-space: pre-wrap; color: var(--texto); margin: 0; }
+.ok { color: var(--ok); font-weight: 700; }
+.rasc { color: var(--destaque-2); font-weight: 700; }
+.certa { color: var(--ok); font-weight: 700; }
+.link-perigo { background: transparent; border: none; color: var(--erro); cursor: pointer; font: inherit; padding: 0.4rem 0; text-decoration: underline; }
+.barra { background: var(--fundo); border: 1px solid var(--borda); border-radius: 999px; height: 12px; overflow: hidden; margin: 0.5rem 0 1rem; }
+.preenchida { background: var(--destaque); height: 100%; }
+.opcao { display: flex; gap: 0.6rem; align-items: center; border: 1px solid var(--borda); border-radius: 10px; padding: 0.7rem; cursor: pointer; }
+.opcao:hover { border-color: var(--destaque); }
+.errada { color: var(--erro); }
+.erro-t { color: var(--erro); }
+@media (max-width: 640px) {
+  .painel { padding: 1rem; }
+  .hero { padding: 1.2rem; }
+  .nav { flex-direction: column; align-items: flex-start; }
+  .btn { width: 100%; text-align: center; }
+  .acoes .btn { width: auto; }
+}

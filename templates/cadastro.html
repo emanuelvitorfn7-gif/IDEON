@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Cadastrar · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Criar conta</h1>
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome<input name="nome" required autocomplete="name"></label>
+    <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
+    <label>Senha (mín. 6)<input name="senha" type="password" required minlength="6" autocomplete="new-password"></label>
+    <label>Perfil
+      <select name="perfil" required>
+        <option value="">Escolha…</option>
+        <option value="professor">Professor</option>
+        <option value="aluno">Aluno</option>
+      </select>
+    </label>
+    <button class="btn primario" type="submit">Cadastrar</button>
+  </form>
+  <p class="meta">Já tem conta? <a href="{{ url_for('login') }}">Entre aqui</a>.</p>
+</section>
+{% endblock %}

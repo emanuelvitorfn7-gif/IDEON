@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ turma.nome }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('painel_aluno') }}">← Voltar</a></p>
+  <h1>{{ turma.nome }}</h1>
+  {% if turma.descricao %}<p>{{ turma.descricao }}</p>{% endif %}
+  <h2>Materiais liberados</h2>
+  {% if materiais %}
+    <ul class="lista">{% for m in materiais %}<li><a href="{{ url_for('material_aluno', material_id=m.id) }}"><strong>{{ m.titulo }}</strong></a></li>{% endfor %}</ul>
+  {% else %}
+    <p class="meta">Nenhum material liberado ainda.</p>
+  {% endif %}
+  <h2>Atividades publicadas</h2>
+  {% if publicadas %}
+    <ul class="lista">{% for a in publicadas %}<li><a href="{{ url_for('atividade_aluno', atividade_id=a.id) }}"><strong>{{ a.titulo }}</strong></a></li>{% endfor %}</ul>
+  {% else %}
+    <p class="meta">Nenhuma atividade publicada ainda.</p>
+  {% endif %}
+  <h2>Ranking da turma</h2>
+  <p class="meta">Pelo XP nas atividades desta turma. Empates dividem a posição.</p>
+  {% if ranking %}
+    <ol class="lista">
+      {% for r in ranking %}
+      <li><strong>{{ r.pos }}º · {{ r.nome }}</strong>
+        <span class="meta">{{ r.xp }} XP · {{ r.dias }} dia(s) ·
+        {% if r.evolucao is not none %}evolução média {{ "+" if r.evolucao >= 0 }}{{ r.evolucao }} p.p. ({{ r.n_comp }} atividade(s)){% else %}evolução: dados insuficientes{% endif %}</span></li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p class="meta">Dados insuficientes. Turma sem inscritos.</p>
+  {% endif %}
+</section>
+{% endblock %}

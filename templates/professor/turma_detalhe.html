@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ turma.nome }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('painel_professor') }}">← Voltar</a></p>
+  <h1>{{ turma.nome }}</h1>
+  <p class="meta">Código de ingresso: <strong class="codigo">{{ turma.codigo }}</strong></p>
+  {% if turma.descricao %}<p>{{ turma.descricao }}</p>{% endif %}
+  <div class="linha"><h2>Materiais ({{ materiais|length }})</h2>
+    <div class="acoes">
+      <a class="btn primario" href="{{ url_for('material_novo', turma_id=turma.id) }}">Novo material</a>
+      <form method="post" action="{{ url_for('criar_demo', turma_id=turma.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn fantasma" type="submit">Material de exemplo (demonstração)</button>
+      </form>
+    </div>
+  </div>
+  {% if materiais %}
+    <ul class="lista">
+      {% for m in materiais %}
+      <li><a href="{{ url_for('material_professor', material_id=m.id) }}"><strong>{{ m.titulo }}</strong></a>
+        <span class="meta">{{ m.estado }} · {{ m.origem }} · {{ m.total_paginas }} pág./seções</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Nenhum material ainda. Envie um PDF ou cole um texto.</p>
+  {% endif %}
+  <h2>Alunos inscritos ({{ alunos|length }})</h2>
+  {% if alunos %}
+    <ul class="lista">
+      {% for a in alunos %}<li><strong>{{ a.nome }}</strong> <span class="meta">{{ a.email }}</span></li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Nenhum aluno inscrito ainda.</p>
+  {% endif %}
+  <h2>Desempenho no aplicativo</h2>
+  <p class="meta">Estes indicadores descrevem apenas o desempenho nas atividades do aplicativo.</p>
+  <h3>Conclusão por atividade</h3>
+  {% if stats.por_atividade %}
+    {% for a in stats.por_atividade %}
+      <p><strong>{{ a.titulo }}</strong>: {{ a.concluintes }}/{{ a.inscritos }} concluíram ·
+        {% if a.media is not none %}média de {{ a.media }}% na primeira tentativa{% else %}sem conclusões ainda{% endif %}</p>
+      <div class="barra"><div class="preenchida" style="width: {{ (a.concluintes / a.inscritos * 100) | round if a.inscritos else 0 }}%"></div></div>
+    {% endfor %}
+  {% else %}
+    <p class="meta">Dados insuficientes. Nenhuma atividade publicada.</p>
+  {% endif %}
+  <h3>Acertos por assunto</h3>
+  {% if stats.assuntos %}
+    <ul class="lista">
+      {% for s in stats.assuntos %}
+      <li><strong>{{ s.assunto }}</strong> <span class="meta">{{ s.pct }}% · {{ s.n }} resposta(s) analisada(s) (primeiras tentativas)</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Dados insuficientes.</p>
+  {% endif %}
+  <h3>Atenção e apoio</h3>
+  {% if stats.sem_conclusao %}
+    <p>Ainda não concluíram nenhuma atividade — vale um incentivo:
+      {{ stats.sem_conclusao | join(", ") }}.</p>
+  {% endif %}
+  {% if stats.abaixo %}
+    <p>Com média abaixo de 60% e potencial para revisar:
+      {% for a in stats.abaixo %}{{ a.nome }} ({{ a.media }}%){% if not loop.last %}, {% endif %}{% endfor %}.</p>
+  {% endif %}
+  {% if not stats.sem_conclusao and not stats.abaixo %}
+    <p class="meta">Tudo em dia: todos concluíram e estão acima de 60%.</p>
+  {% endif %}
+  <h2>Ranking da turma</h2>
+  <p class="meta">Pelo XP nas atividades desta turma. Empates dividem a posição. Sem ranking de colaboração (o aplicativo não registra ajuda entre colegas).</p>
+  {% if ranking %}
+    <ol class="lista">
+      {% for r in ranking %}
+      <li><strong>{{ r.pos }}º · {{ r.nome }}</strong>
+        <span class="meta">{{ r.xp }} XP · {{ r.dias }} dia(s) ·
+        {% if r.evolucao is not none %}evolução média {{ "+" if r.evolucao >= 0 }}{{ r.evolucao }} p.p. ({{ r.n_comp }} atividade(s)){% else %}evolução: dados insuficientes{% endif %}</span></li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p class="meta">Dados insuficientes. Turma sem inscritos.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Meu desempenho · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <div class="linha">
+    <div><h1 style="margin:0">Nível {{ resumo.nivel.nivel }}</h1>
+      <p class="meta">{{ resumo.xp_total }} XP · {{ resumo.nivel.no_nivel }}/{{ resumo.nivel.para_proximo }} para o próximo nível</p>
+      <div class="barra"><div class="preenchida" style="width: {{ resumo.nivel.no_nivel }}%"></div></div>
+      <p class="meta">{{ resumo.concluidas }} atividade(s) concluída(s) · {{ resumo.dias }} dia(s) de estudo</p>
+    </div>
+    <a class="btn primario" href="{{ url_for('entrar_turma') }}">Entrar com código</a>
+  </div>
+  <h2>Evolução (primeira → última tentativa)</h2>
+  {% if resumo.evolucao %}
+    {% for e in resumo.evolucao %}
+      <p><strong>{{ e.atividade }}</strong>: {{ e.de }}% → {{ e.para }}%
+        ({{ "+" if e.diff >= 0 }}{{ e.diff }} p.p.)</p>
+      <div class="barra"><div class="preenchida" style="width: {{ e.para }}%"></div></div>
+    {% endfor %}
+  {% else %}
+    <p class="meta">Dados insuficientes. Conclua duas tentativas da mesma atividade para ver sua evolução.</p>
+  {% endif %}
+  <h2>Revisar estes assuntos</h2>
+  {% if resumo.recomendacoes %}
+    <ul class="lista">
+      {% for r in resumo.recomendacoes %}
+      <li><strong>{{ r.assunto }}</strong> <span class="meta">{{ r.erros }} erro(s) em {{ r.atividade }} ·
+        página/seção {{ r.pagina }}{% if r.material_id %} · <a href="{{ url_for('material_aluno', material_id=r.material_id) }}">abrir referência</a>{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Dados insuficientes. Sem erros registrados nas últimas tentativas.</p>
+  {% endif %}
+  <h2>Histórico de resultados</h2>
+  {% if resumo.historico %}
+    <ul class="lista">
+      {% for h in resumo.historico %}
+      <li><a href="{{ url_for('resultado', tentativa_id=h.id) }}">{{ h.titulo }}</a>
+        <span class="meta">{{ h.acertos }}/{{ h.total }} · {{ h.turma_nome }} · {{ h.concluida_em }}</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Nenhum resultado ainda.</p>
+  {% endif %}
+  <h2>Minhas turmas</h2>
+  {% if turmas %}
+    <ul class="lista">
+      {% for t in turmas %}
+      <li><a href="{{ url_for('turma_aluno', turma_id=t.id) }}"><strong>{{ t.nome }}</strong></a>
+        <span class="meta">{{ t.descricao or '' }}</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Você ainda não está em nenhuma turma. Peça o código ao professor.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ atv.titulo }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('turma_aluno', turma_id=atv.turma_id) }}">← Voltar</a></p>
+  <h1>{{ atv.titulo }}</h1>
+  {% if atv.material_titulo %}
+    <p class="meta">Material: <strong>{{ atv.material_titulo }}</strong></p>
+  {% endif %}
+  <p class="meta">Como ganha XP: +20 pela primeira conclusão, +10 por acerto nela.
+    Revisões posteriores não geram XP. Abrir o material não pontua.</p>
+  {% if aberta %}
+    <p>Você tem uma tentativa em andamento.</p>
+    <a class="btn primario" href="{{ url_for('responder', tentativa_id=aberta.id) }}">Continuar tentativa</a>
+  {% else %}
+    <form method="post" action="{{ url_for('iniciar_tentativa', atividade_id=atv.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn primario" type="submit">Iniciar tentativa</button>
+    </form>
+  {% endif %}
+  <h2>Histórico</h2>
+  {% if historico %}
+    <ul class="lista">
+      {% for h in historico %}
+      <li><a href="{{ url_for('resultado', tentativa_id=h.id) }}">Tentativa {{ h.id }}</a>
+        <span class="meta">{{ h.acertos }}/{{ h.total }} · concluída em {{ h.concluida_em }}</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Nenhuma tentativa concluída ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ mat.titulo }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('turma_aluno', turma_id=mat.turma_id) }}">← Voltar para {{ mat.turma_nome }}</a></p>
+  <h1>{{ mat.titulo }}</h1>
+  <p class="meta">Este é um acesso ao material para estudo. Abrir o material não comprova aprendizagem nem gera XP — o XP vem das atividades concluídas.</p>
+  {% if mat.arquivo %}
+    <p><a href="{{ url_for('material_arquivo', material_id=mat.id) }}">Baixar PDF original</a></p>
+  {% endif %}
+  {% for p in paginas %}
+    <article class="pagina">
+      <h3>{{ "Página" if mat.origem == "pdf" else "Seção" }} {{ p.numero }}</h3>
+      <p class="texto-extraido">{{ p.texto }}</p>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

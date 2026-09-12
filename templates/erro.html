@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Erro · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Algo não saiu como esperado</h1>
+  <p>{{ mensagem }}</p>
+  <p><a href="javascript:history.back()">← Voltar</a></p>
+</section>
+{% endblock %}

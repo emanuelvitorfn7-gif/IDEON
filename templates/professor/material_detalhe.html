@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ mat.titulo }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('turma_professor', turma_id=mat.turma_id) }}">← Voltar para {{ mat.turma_nome }}</a></p>
+  <ol class="passos" aria-label="Etapas">
+    <li>Turma criada</li><li>Material adicionado</li>
+    <li class="atual">Gerar e revisar</li><li>Publicar</li>
+  </ol>
+  <h1>{{ mat.titulo }}</h1>
+  <p class="meta">Estado: <strong>{{ mat.estado }}</strong> · origem: {{ mat.origem }} · {{ paginas|length }} página(s)/seção(ões)</p>
+  {% if mat.arquivo %}
+    <p><a href="{{ url_for('material_arquivo', material_id=mat.id) }}">Baixar PDF original</a></p>
+  {% endif %}
+  <form method="post" action="{{ url_for('material_estado', material_id=mat.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if mat.estado == "liberado" %}
+      <input type="hidden" name="acao" value="recolher">
+      <button class="btn fantasma" type="submit">Voltar a rascunho</button>
+    {% else %}
+      <input type="hidden" name="acao" value="liberar">
+      <button class="btn primario" type="submit">Liberar para alunos</button>
+    {% endif %}
+  </form>
+  <div class="acoes">
+    <a class="btn primario" href="{{ url_for('gerar_questoes', material_id=mat.id) }}">Gerar questões</a>
+  </div>
+  <h2>Atividades ({{ atividades|length }})</h2>
+  {% if atividades %}
+    <ul class="lista">
+      {% for a in atividades %}
+      <li><a href="{{ url_for('revisar_atividade', atividade_id=a.id) }}"><strong>{{ a.titulo }}</strong></a>
+        <span class="meta">{{ a.estado }} · {{ a.total }} questão(ões)</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">Nenhuma atividade ainda. {% if ia_disponivel %}Gere questões com IA
+      ou{% endif %} crie o material de exemplo na página da turma.</p>
+  {% endif %}
+  <h2>Texto extraído</h2>
+  {% for p in paginas %}
+    <article class="pagina">
+      <h3>{{ "Página" if mat.origem == "pdf" else "Seção" }} {{ p.numero }}</h3>
+      <p class="texto-extraido">{{ p.texto }}</p>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

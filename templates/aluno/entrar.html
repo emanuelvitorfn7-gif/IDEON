@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Entrar em turma · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Entrar em turma</h1>
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Código da turma<input name="codigo" required maxlength="12" placeholder="Ex.: A1B2C3"></label>
+    <button class="btn primario" type="submit">Entrar</button>
+  </form>
+</section>
+{% endblock %}

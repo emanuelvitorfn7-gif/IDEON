@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Questão {{ feitas + 1 }} de {{ tent.total }} · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <p class="meta">Questão {{ feitas + 1 }} de {{ tent.total }}</p>
+  <div class="barra"><div class="preenchida" style="width: {{ (feitas / tent.total * 100) | round }}%"></div></div>
+  <h1>{{ q.enunciado }}</h1>
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="questao_id" value="{{ q.id }}">
+    {% for a in q.alts %}
+      <label class="opcao"><input type="radio" name="alternativa" value="{{ loop.index0 }}" required> {{ a }}</label>
+    {% endfor %}
+    <button class="btn primario" type="submit">Enviar resposta</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Novo material · {{ turma.nome }}{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('turma_professor', turma_id=turma.id) }}">← Voltar para {{ turma.nome }}</a></p>
+  <h1>Novo material</h1>
+  <p class="meta">PDF com texto selecionável (até 10 MB) ou texto digitado/colado. Salvo como rascunho.</p>
+  <form class="form" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Título<input name="titulo" required maxlength="150"></label>
+    <label>Tipo
+      <select name="origem" id="origem">
+        <option value="pdf">PDF enviado</option>
+        <option value="texto">Texto digitado / colado</option>
+      </select>
+    </label>
+    <label id="campo-arquivo">Arquivo PDF<input name="arquivo" type="file" accept="application/pdf,.pdf"></label>
+    <label id="campo-texto" hidden>Texto<textarea name="texto" rows="10" placeholder="Cole aqui o conteúdo…"></textarea></label>
+    <button class="btn primario" type="submit">Enviar material</button>
+  </form>
+</section>
+<script>
+  const origem = document.getElementById("origem");
+  const campoArquivo = document.getElementById("campo-arquivo");
+  const campoTexto = document.getElementById("campo-texto");
+  function alternar() {
+    const ehTexto = origem.value === "texto";
+    campoArquivo.hidden = ehTexto;
+    campoTexto.hidden = !ehTexto;
+  }
+  origem.addEventListener("change", alternar);
+  alternar();
+</script>
+{% endblock %}

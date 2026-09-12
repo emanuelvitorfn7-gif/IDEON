@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Nova turma · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Nova turma</h1>
+  <p class="meta">O código de ingresso é gerado automaticamente.</p>
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome<input name="nome" required maxlength="120"></label>
+    <label>Descrição<textarea name="descricao" rows="3" maxlength="500"></textarea></label>
+    <button class="btn primario" type="submit">Criar turma</button>
+  </form>
+</section>
+{% endblock %}

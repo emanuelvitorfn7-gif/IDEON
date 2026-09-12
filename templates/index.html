@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Ideon · Plataforma educacional gamificada{% endblock %}
+{% block content %}
+<section class="hero">
+  <span class="tag">MVP · Professor e Aluno</span>
+  <h1>Transforme PDFs em <em>atividades gamificadas</em>.</h1>
+  <p>O professor cria a turma, envia o material, gera questões com IA, revisa e publica.
+     O aluno responde, recebe feedback e acumula XP.</p>
+  <div class="acoes">
+    {% if g.usuario %}
+      <a class="btn primario" href="{{ url_for('painel') }}">Ir para o painel</a>
+    {% else %}
+      <a class="btn primario" href="{{ url_for('cadastro') }}">Criar conta</a>
+      <a class="btn fantasma" href="{{ url_for('login') }}">Entrar</a>
+    {% endif %}
+  </div>
+</section>
+<section class="grade">
+  <article class="cartao"><h2>1 · Turma</h2><p>Professor cria a turma e compartilha o código exclusivo.</p></article>
+  <article class="cartao"><h2>2 · Questões</h2><p>Envie o PDF e gere questões com IA para revisão.</p></article>
+  <article class="cartao"><h2>3 · XP</h2><p>Alunos inscritos respondem e sobem de nível.</p></article>
+</section>
+{% endblock %}

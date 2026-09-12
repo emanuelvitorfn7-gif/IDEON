@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Gerar questões · {{ mat.titulo }}{% endblock %}
+{% block content %}
+<section class="painel">
+  <p><a href="{{ url_for('material_professor', material_id=mat.id) }}">← Voltar ao material</a></p>
+  <ol class="passos" aria-label="Etapas">
+    <li>Turma criada</li><li>Material adicionado</li>
+    <li class="atual">Gerar e revisar</li><li>Publicar</li>
+  </ol>
+  <h1>Gerar questões</h1>
+  <p class="meta">Material: <strong>{{ mat.titulo }}</strong> · {{ total_chars }} caracteres
+    (limite {{ limite }}) · provedor OpenAI · modelo {{ modelo }}</p>
+  {% if not ia_disponivel %}
+    <p class="flash erro">Modo demonstração: sem <code>OPENAI_API_KEY</code>, a geração real
+      está desligada e nunca é simulada. Para demonstrar o fluxo, crie o material
+      de exemplo na página da turma.</p>
+  {% else %}
+    <form class="form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Título da atividade<input name="titulo" maxlength="150"
+        value="Atividade — {{ mat.titulo }}"></label>
+      <label>Quantidade (5 a 10)<input name="quantidade" type="number" min="5" max="10" value="5" required></label>
+      <button class="btn primario" type="submit">Gerar com IA</button>
+    </form>
+    <p class="meta">A IA usa apenas o conteúdo do material. Questões nascem como rascunho
+      para sua revisão.</p>
+  {% endif %}
+</section>
+{% endblock %}

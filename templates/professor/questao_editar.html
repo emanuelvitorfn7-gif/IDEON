@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Editar questão · Ideon{% endblock %}
+{% block content %}
+<section class="painel">
+  <h1>Editar questão</h1>
+  <p class="meta">Mudar enunciado, alternativas, gabarito ou referência invalida a aprovação anterior.</p>
+  <form class="form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Enunciado<textarea name="enunciado" rows="3" required>{{ q.enunciado }}</textarea></label>
+    {% for a in q.alternativas %}
+      <label>Alternativa {{ "ABCD"[loop.index0] }}<input name="alt{{ loop.index0 }}" value="{{ a }}" required></label>
+    {% endfor %}
+    <label>Alternativa correta
+      <select name="correta">
+        {% for i in range(4) %}<option value="{{ i }}" {% if i == q.correta %}selected{% endif %}>{{ "ABCD"[i] }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Explicação<textarea name="explicacao" rows="2" required>{{ q.explicacao }}</textarea></label>
+    <label>Assunto<input name="assunto" value="{{ q.assunto }}" required></label>
+    <label>Página/seção
+      <select name="pagina">
+        {% for p in paginas %}<option value="{{ p.numero }}" {% if p.numero == q.pagina %}selected{% endif %}>{{ p.numero }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Evidência (trecho copiado do material)<textarea name="evidencia" rows="2" required>{{ q.evidencia }}</textarea></label>
+    <button class="btn primario" type="submit">Salvar</button>
+  </form>
+</section>
+{% endblock %}
