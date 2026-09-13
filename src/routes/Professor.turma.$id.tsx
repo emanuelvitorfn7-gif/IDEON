@@ -15,10 +15,11 @@ import { AppShell } from "@/components/ideon/AppShell";
 import { Protegido } from "@/components/ideon/Protegido";
 import { StatCard } from "@/components/ideon/StatCard";
 import { RevisaoQuestoes } from "@/components/ideon/RevisaoQuestoes";
+import { AcoesAtividade } from "@/components/ideon/AcoesAtividade";
 import { ExcluirMaterial } from "@/components/ideon/ExcluirMaterial";
 import { gerarQuestoes } from "@/lib/ia.functions";
 import { validarConteudoMaterial, MAX_CARACTERES_MATERIAL } from "@/lib/conteudo-material";
-import { formatarPrazo } from "@/lib/datas";
+import { formatarPrazo, prazoParaISO } from "@/lib/datas";
 import {
   atualizarStatusMaterial,
   criarMaterial,
@@ -68,10 +69,12 @@ function PainelTurma() {
   const { data: questoes = [] } = useQuery({
     queryKey: ["turma-questoes", id],
     queryFn: () => listarQuestoes(id),
+    refetchInterval: 30_000,
   });
   const { data: atividades = [] } = useQuery({
     queryKey: ["turma-atividades", id],
     queryFn: () => listarAtividades(id),
+    refetchInterval: 30_000,
   });
 
   const pendentes = questoes.filter((q) => !q.aprovada).length;
@@ -168,7 +171,8 @@ function PainelTurma() {
         turmaId: id,
         titulo: String(form.get("titulo") ?? ""),
         descricao: String(form.get("descricao") ?? ""),
-        prazo: String(form.get("prazo") ?? "") || null,
+        prazo: prazoParaISO(String(form.get("prazo") ?? "")),
+        excluirAoVencer: form.get("excluir_ao_vencer") === "on",
         xp: Number(form.get("xp") ?? 100),
         questoes: Array.from(selecionadasValidas),
       };
@@ -403,10 +407,10 @@ function PainelTurma() {
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
                     <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                      Prazo
+                      Prazo (Brasília)
                     </span>
                     <input
-                      type="date"
+                      type="datetime-local"
                       name="prazo"
                       className="mt-1 w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-sm outline-none focus:border-aura/50"
                     />
@@ -425,6 +429,15 @@ function PainelTurma() {
                     />
                   </label>
                 </div>
+                <label className="flex items-start gap-2 text-xs">
+                  <input type="checkbox" name="excluir_ao_vencer" className="mt-0.5 accent-aura" />
+                  Excluir automaticamente ao vencer o prazo
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Horário de Brasília (UTC−3). Ao vencer, as respostas encerram. Se marcar a
+                  exclusão automática, a atividade, seus resultados e questões exclusivas serão
+                  apagados. Questões compartilhadas e XP já ganho serão mantidos.
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {selecionadasValidas.size} questão(ões) aprovada(s) selecionada(s) ao lado.
                 </p>
@@ -464,17 +477,21 @@ function PainelTurma() {
                     xp: number;
                     publicada: boolean;
                     prazo: string | null;
+                    prazo_com_hora: boolean;
+                    excluir_ao_vencer: boolean;
                   };
                   return (
                     <li
                       key={atividade.id}
-                      className="flex items-center justify-between rounded-2xl border border-border bg-background/40 p-4"
+                      className="rounded-2xl border border-border bg-background/40 p-4"
                     >
                       <div>
                         <p className="text-sm font-semibold">{atividade.titulo}</p>
                         <p className="text-xs text-muted-foreground">
                           {atividade.xp} XP
-                          {atividade.prazo ? ` · prazo ${formatarPrazo(atividade.prazo)}` : ""}
+                          {atividade.prazo
+                            ? ` · prazo ${formatarPrazo(atividade.prazo, atividade.prazo_com_hora)}`
+                            : ""}
                         </p>
                       </div>
                       <span
@@ -486,6 +503,25 @@ function PainelTurma() {
                       >
                         {atividade.publicada ? "Publicada" : "Rascunho"}
                       </span>
+                      {atividade.excluir_ao_vencer ? (
+                        <p className="mt-2 text-xs text-warning">
+                          Exclusão automática no prazo
+                          {atividade.publicada ? "" : " (após publicar)"}
+                        </p>
+                      ) : null}
+                      <AcoesAtividade
+                        atividade={atividade}
+                        aoMudar={(idsExcluidas) => {
+                          setSelecionadas(
+                            (atual) =>
+                              new Set(
+                                [...atual].filter((questaoId) => !idsExcluidas.includes(questaoId)),
+                              ),
+                          );
+                          recarregar();
+                          void queryClient.invalidateQueries({ queryKey: ["atividades-aluno"] });
+                        }}
+                      />
                     </li>
                   );
                 })}

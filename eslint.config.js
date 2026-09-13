@@ -20,6 +20,17 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      "no-restricted-globals": ["error", "alert", "confirm", "prompt"],
+      "no-restricted-properties": [
+        "error",
+        ...["window", "globalThis"].flatMap((object) =>
+          ["alert", "confirm", "prompt"].map((property) => ({
+            object,
+            property,
+            message: "Use os modais do sistema em vez de pop-ups nativos do navegador.",
+          })),
+        ),
+      ],
       "no-restricted-imports": [
         "error",
         {

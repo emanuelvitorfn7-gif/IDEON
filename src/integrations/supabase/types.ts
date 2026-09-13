@@ -49,6 +49,8 @@ export type Database = {
           criado_em: string
           descricao: string
           id: string
+          excluir_ao_vencer: boolean
+          prazo_com_hora: boolean
           prazo: string | null
           publicada: boolean
           titulo: string
@@ -59,6 +61,8 @@ export type Database = {
           criado_em?: string
           descricao?: string
           id?: string
+          excluir_ao_vencer?: boolean
+          prazo_com_hora?: boolean
           prazo?: string | null
           publicada?: boolean
           titulo: string
@@ -69,6 +73,8 @@ export type Database = {
           criado_em?: string
           descricao?: string
           id?: string
+          excluir_ao_vencer?: boolean
+          prazo_com_hora?: boolean
           prazo?: string | null
           publicada?: boolean
           titulo?: string
@@ -187,6 +193,7 @@ export type Database = {
       }
       questoes: {
         Row: {
+          arquivada: boolean
           alternativas: Json
           aprovada: boolean
           assunto: string
@@ -200,6 +207,7 @@ export type Database = {
           turma_id: string
         }
         Insert: {
+          arquivada?: boolean
           alternativas?: Json
           aprovada?: boolean
           assunto?: string
@@ -213,6 +221,7 @@ export type Database = {
           turma_id: string
         }
         Update: {
+          arquivada?: boolean
           alternativas?: Json
           aprovada?: boolean
           assunto?: string
@@ -336,6 +345,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      excluir_atividade_professor: {
+        Args: { p_atividade_id: string }
+        Returns: Json
+      }
+      atualizar_prazo_atividade_professor: {
+        Args: { p_atividade_id: string; p_prazo: string | null; p_excluir_ao_vencer: boolean }
+        Returns: undefined
+      }
+      criar_atividade_professor: {
+        Args: { p_turma_id: string; p_titulo: string; p_descricao: string; p_prazo: string | null; p_xp: number; p_questao_ids: string[]; p_publicada: boolean; p_excluir_ao_vencer: boolean }
+        Returns: Json
+      }
+      remover_questoes_professor: {
+        Args: { p_turma_id: string; p_questao_ids: string[] }
+        Returns: Json
+      }
       excluir_material_professor: {
         Args: { p_material_id: string; p_excluir_questoes?: boolean }
         Returns: Json

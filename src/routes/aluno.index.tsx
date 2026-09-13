@@ -41,6 +41,7 @@ function PainelAluno() {
     queryKey: ["atividades-aluno", user?.id],
     queryFn: () => listarAtividadesDoAluno(user!.id),
     enabled: Boolean(user?.id),
+    refetchInterval: 30_000,
   });
 
   const turmas = data?.turmas ?? [];
@@ -167,13 +168,16 @@ function PainelAluno() {
                 titulo: string;
                 xp: number;
                 prazo: string | null;
+                prazo_com_hora: boolean;
               };
               return (
                 <div key={atividade.id} className="rounded-3xl glass-panel p-6">
                   <h3 className="text-display text-lg">{atividade.titulo}</h3>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {atividade.xp} XP
-                    {atividade.prazo ? ` · prazo ${formatarPrazo(atividade.prazo)}` : ""}
+                    {atividade.prazo
+                      ? ` · prazo ${formatarPrazo(atividade.prazo, atividade.prazo_com_hora)}`
+                      : ""}
                   </p>
                   <button
                     onClick={() => setAtividadeAberta(atividade.id)}

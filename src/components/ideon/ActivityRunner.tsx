@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { formatarPrazo } from "@/lib/datas";
 import { carregarAtividadeAluno, enviarSubmissao } from "@/lib/atividade.functions";
 
 export function ActivityRunner({
@@ -14,15 +15,29 @@ export function ActivityRunner({
   const queryClient = useQueryClient();
   const [respostas, setRespostas] = useState<Record<string, number>>({});
   const [enviando, setEnviando] = useState(false);
+  const [agora, setAgora] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setAgora(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [resultado, setResultado] = useState<Awaited<ReturnType<typeof enviarSubmissao>> | null>(
     null,
   );
   const { data, isLoading, error } = useQuery({
     queryKey: ["atividade-segura", atividadeId],
     queryFn: () => carregarAtividadeAluno({ data: { atividadeId } }),
+    refetchInterval: 30_000,
   });
 
+  const prazoEncerrado = Boolean(
+    data?.prazo_com_hora && data.prazo && new Date(data.prazo).getTime() <= agora,
+  );
+
   async function enviar() {
+    if (prazoEncerrado || error) {
+      toast.error("Esta atividade não está mais disponível para respostas.");
+      return;
+    }
     if (!data || Object.keys(respostas).length !== data.questoes.length) {
       toast.error("Responda todas as questões antes de enviar.");
       return;
@@ -69,6 +84,16 @@ export function ActivityRunner({
             {data.descricao ? (
               <p className="mt-2 text-sm text-muted-foreground">{data.descricao}</p>
             ) : null}
+            {data.prazo ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Prazo: {formatarPrazo(data.prazo, data.prazo_com_hora)} (Brasília)
+              </p>
+            ) : null}
+            {prazoEncerrado ? (
+              <p role="status" className="mt-2 text-sm text-warning">
+                O prazo para responder encerrou.
+              </p>
+            ) : null}
             <ol className="mt-8 space-y-6">
               {data.questoes.map((q, indice) => {
                 const detalhe = resultado?.detalhes.find((d) => d.questao_id === q.id);
@@ -90,7 +115,7 @@ export function ActivityRunner({
                             type="radio"
                             name={q.id}
                             checked={respostas[q.id] === i}
-                            disabled={Boolean(resultado)}
+                            disabled={Boolean(resultado) || prazoEncerrado || Boolean(error)}
                             onChange={() => setRespostas((r) => ({ ...r, [q.id]: i }))}
                           />
                           {alternativa}
@@ -121,7 +146,7 @@ export function ActivityRunner({
             ) : (
               <button
                 onClick={() => void enviar()}
-                disabled={enviando}
+                disabled={enviando || prazoEncerrado || Boolean(error)}
                 className="mt-8 w-full rounded-2xl bg-aura py-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
               >
                 {enviando ? "Corrigindo com segurança…" : "Enviar respostas"}

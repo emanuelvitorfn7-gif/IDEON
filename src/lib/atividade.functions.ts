@@ -35,6 +35,7 @@ export const carregarAtividadeAluno = createServerFn({ method: "GET" })
       titulo: string;
       descricao: string;
       prazo: string | null;
+      prazo_com_hora: boolean;
       questoes: QuestaoAluno[];
     };
   });

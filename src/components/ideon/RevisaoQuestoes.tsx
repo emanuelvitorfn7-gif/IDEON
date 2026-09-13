@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { QuestaoCard } from "./QuestaoCard";
-import { atualizarQuestao, excluirQuestoes, type Questao } from "@/services/ideon";
+import { ConfirmarRemocaoQuestoes } from "./ConfirmarRemocaoQuestoes";
+import { atualizarQuestao, removerQuestoes, type Questao } from "@/services/ideon";
 
 export function RevisaoQuestoes({
   turmaId,
@@ -24,6 +25,7 @@ export function RevisaoQuestoes({
   const [modoExclusao, setModoExclusao] = useState(false);
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const [ocupado, setOcupado] = useState(false);
+  const [confirmacao, setConfirmacao] = useState<Questao[] | null>(null);
   // Se um material for excluído, suas questões ficam disponíveis em "Sem material".
   const filtroAtual =
     filtro === "todos" || filtro === "sem-material" || materiais.some((m) => m.id === filtro)
@@ -34,7 +36,7 @@ export function RevisaoQuestoes({
       filtroAtual === "todos" ||
       (filtroAtual === "sem-material" ? !q.material_id : q.material_id === filtroAtual),
   );
-  const removiveis = visiveis.filter((q) => !q.em_uso);
+  const removiveis = visiveis;
   const idsExclusao = removiveis.filter((q) => marcadas.has(q.id)).map((q) => q.id);
   const pendentes = visiveis.filter((q) => !q.aprovada);
 
@@ -48,20 +50,16 @@ export function RevisaoQuestoes({
   }
 
   async function excluirLote() {
-    if (ocupado || idsExclusao.length === 0) return;
-    if (
-      !window.confirm(
-        `Excluir ${idsExclusao.length} questão(ões) selecionada(s)? Essa ação não pode ser desfeita. Questões em atividades serão preservadas.`,
-      )
-    )
-      return;
+    if (ocupado || !confirmacao?.length) return;
+    const ids = confirmacao.map((q) => q.id);
     setOcupado(true);
     try {
-      const resultado = await excluirQuestoes(turmaId, idsExclusao);
-      resultado.excluidas.forEach((id) => aoSelecionar(id, false));
+      const resultado = await removerQuestoes(turmaId, ids);
+      [...resultado.excluidas, ...resultado.arquivadas].forEach((id) => aoSelecionar(id, false));
+      setConfirmacao(null);
       setMarcadas(new Set());
       toast.success(
-        `${resultado.excluidas.length} questão(ões) excluída(s).${resultado.preservadas ? ` ${resultado.preservadas} em atividade foram preservadas.` : ""}`,
+        `${resultado.excluidas.length} questão(ões) excluída(s) e ${resultado.arquivadas.length} arquivada(s).`,
       );
       aoMudar();
     } catch (erro) {
@@ -86,6 +84,16 @@ export function RevisaoQuestoes({
 
   return (
     <>
+      <ConfirmarRemocaoQuestoes
+        aberto={confirmacao !== null}
+        quantidade={confirmacao?.length ?? 0}
+        emUso={confirmacao?.filter((q) => q.em_uso).length ?? 0}
+        ocupado={ocupado}
+        aoAbrir={(aberto) => {
+          if (!aberto) setConfirmacao(null);
+        }}
+        aoConfirmar={() => void excluirLote()}
+      />
       <h2 className="text-display mt-10 text-2xl">Revisão de questões</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Filtre por material para revisar as questões. Só as questões aprovadas que você selecionar
@@ -130,7 +138,7 @@ export function RevisaoQuestoes({
           }}
           className="rounded-xl border border-border px-4 py-2 text-xs font-bold disabled:opacity-40"
         >
-          {modoExclusao ? "Concluir seleção para excluir" : "Selecionar para excluir"}
+          {modoExclusao ? "Concluir seleção" : "Selecionar para remover"}
         </button>
         {modoExclusao ? (
           <>
@@ -147,22 +155,22 @@ export function RevisaoQuestoes({
             >
               {removiveis.length > 0 && idsExclusao.length === removiveis.length
                 ? "Desmarcar todas"
-                : "Selecionar todas sem uso"}
+                : "Selecionar todas exibidas"}
             </button>
             <button
               disabled={ocupado || idsExclusao.length === 0}
-              onClick={() => void excluirLote()}
+              onClick={() => setConfirmacao(removiveis.filter((q) => marcadas.has(q.id)))}
               className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-xs font-bold text-danger disabled:opacity-40"
             >
-              {ocupado ? "Aguarde..." : `Excluir selecionadas (${idsExclusao.length})`}
+              {ocupado ? "Aguarde..." : `Remover selecionadas (${idsExclusao.length})`}
             </button>
           </>
         ) : null}
       </div>
       {modoExclusao ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          Questões em atividades ou rascunhos são preservadas. A seleção para excluir é independente
-          da seleção para a nova atividade.
+          Questões em atividades ou rascunhos podem ser arquivadas para sair desta lista. A seleção
+          para remover é independente da seleção para a nova atividade.
         </p>
       ) : null}
       {visiveis.length === 0 ? (
@@ -175,12 +183,12 @@ export function RevisaoQuestoes({
             <QuestaoCard
               key={q.id}
               questao={q}
-              selecionavel={modoExclusao ? !q.em_uso : q.aprovada}
+              selecionavel={modoExclusao || q.aprovada}
               selecionada={modoExclusao ? marcadas.has(q.id) : selecionadas.has(q.id)}
               aoSelecionar={modoExclusao ? marcar : aoSelecionar}
               rotuloSelecao={
                 modoExclusao
-                  ? "Selecionar questão para excluir"
+                  ? "Selecionar questão para remover"
                   : "Selecionar questão para atividade"
               }
               bloqueada={ocupado}

@@ -5,13 +5,88 @@ mantém as questões por padrão. A opção de apagar também as questões remov
 apenas as que não estão vinculadas a atividades, incluindo rascunhos.
 Adicionar outro material não remove nenhum material ou questão anterior.
 
-Em **Revisão de questões**, filtre pelo material e use **Selecionar para excluir**.
-É possível marcar algumas questões ou todas as questões sem uso exibidas pelo filtro.
-A exclusão exige confirmação. A seleção para excluir é independente da seleção
+Em **Revisão de questões**, filtre pelo material e use **Selecionar para remover**.
+É possível marcar algumas questões ou todas as questões exibidas pelo filtro, inclusive
+as antigas que já estão em atividades. A ação usa o modal do sistema. Questões sem
+vínculo são excluídas; questões em atividades ou rascunhos são arquivadas e deixam
+a revisão, mantendo seus vínculos e os resultados dos alunos. A seleção para excluir é independente da seleção
 para publicar uma atividade. Trocar o filtro limpa as seleções; questões cujo
 material foi apagado continuam acessíveis em **Sem material**.
 
-## Aplicação no Supabase
+## Atualização: questões antigas e modais
+
+A remoção individual e em lote usa o mesmo modal visual do sistema. Não há
+`window.confirm`, `alert` ou `prompt`; o ESLint impede reintroduzir essas chamadas.
+
+Se a primeira migração já foi aplicada, execute somente o arquivo novo no SQL Editor:
+
+`supabase/migrations/20260913010000_arquivar_questoes_em_uso.sql`
+
+Ele adiciona o estado de arquivamento e a função `remover_questoes_professor`.
+Executar a migração não remove nem arquiva questões existentes. As mudanças só
+ocorrem após a confirmação do professor na aplicação. Não altere a migração antiga.
+Depois de executar com sucesso, recarregue a aplicação.
+
+Valide: cancelar o modal não muda a lista; confirmar um lote misto exclui questões
+sem uso e arquiva as vinculadas; recarregar mantém as antigas fora da revisão;
+a atividade original continua com as mesmas questões e resultados.
+
+Essa migração ainda precisa ser aplicada no Supabase: o ambiente local não tem
+credenciais administrativas para executar o SQL remoto.
+
+## Atualização: exclusão de atividades e prazo com hora
+
+Depois das migrações anteriores, execute o conteúdo completo de:
+
+`supabase/migrations/20260913020000_exclusao_atividades_prazo.sql`
+
+O arquivo `20260913010000_arquivar_questoes_em_uso.sql` trata de questões; ele não
+instala a exclusão de atividades. Se a mensagem aparecer ao clicar em **Excluir**
+numa atividade, a etapa necessária é o arquivo novo com final `atividades_prazo.sql`.
+Você pode reutilizar a mesma aba do SQL Editor: substitua o texto pelo arquivo novo
+e clique em **Run**. Após sucesso, atualize a aplicação com F5.
+
+Esta atualização instala a criação atômica de atividades, edição do prazo,
+exclusão manual e agendamento de limpeza. Ela não exclui registros durante a
+instalação e mantém a exclusão automática desativada nas atividades existentes.
+
+- **Excluir** abre o modal do sistema. Apaga a atividade, seus resultados e as
+  questões sem vínculo com outras atividades, inclusive questões arquivadas.
+  Questões compartilhadas, materiais e XP já conquistado permanecem.
+- **Ajustar prazo** permite mudar a data e a hora e ligar/desligar a exclusão
+  automática. O formulário de criação oferece a mesma opção, desmarcada por padrão.
+- O horário é de Brasília (UTC−3); `14/02/2026 23:59h` é salvo como
+  `2026-02-15T02:59:00Z`. Datas antigas sem hora mantêm sua apresentação até a edição.
+- Para prazos novos com hora, o banco recusa respostas após o encerramento,
+  mesmo se o aluno tiver deixado uma aba aberta. Sem exclusão automática,
+  a atividade permanece disponível para consulta.
+- Com a opção marcada, somente atividades publicadas vencidas são excluídas.
+  O agendamento verifica os prazos a cada minuto, em lotes de até 100 atividades.
+  As listas na aplicação consultam atualizações a cada 30 segundos.
+
+A migração usa [Supabase Cron](https://supabase.com/docs/guides/cron), com `pg_cron`,
+para executar a limpeza mesmo sem navegadores abertos. Para conferir a instalação,
+execute estas consultas de leitura no SQL Editor:
+
+```sql
+SELECT to_regprocedure('public.excluir_atividade_professor(uuid)') AS excluir_atividade;
+SELECT jobname, schedule, active
+FROM cron.job WHERE jobname = 'ideon-excluir-atividades-vencidas';
+```
+
+A função deve existir e o agendamento deve estar ativo, com `* * * * *`.
+Se a instalação falhar ao habilitar `pg_cron`, confira em **Integrations → Cron**
+ou **Database → Extensions** se a extensão está disponível/habilitada e envie o
+erro exato. A migração é transacional; não execute apenas trechos dela para
+contornar um erro.
+
+Os testes executam as funções de exclusão, autorização, publicação e vencimento
+em PostgreSQL via PGlite. O registro do cron é simulado e seu comando real é
+executado nos testes; o processo agendador do Supabase precisa ser conferido no
+ambiente remoto. A migração ainda não foi aplicada remotamente pelo agente,
+pois não há credenciais administrativas disponíveis.
+
+## Aplicação inicial no Supabase
 
 Se aparecer **“A exclusão ainda não está disponível”**, a API retornou `PGRST202`:
 ela não encontrou a função de exclusão com os parâmetros usados pela aplicação.

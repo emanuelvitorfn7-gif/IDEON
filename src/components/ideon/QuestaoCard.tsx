@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Questao } from "@/services/ideon";
-import { atualizarQuestao, excluirQuestao } from "@/services/ideon";
+import { atualizarQuestao, removerQuestoes } from "@/services/ideon";
+
+import { ConfirmarRemocaoQuestoes } from "./ConfirmarRemocaoQuestoes";
 
 const DIFICULDADES = ["Fácil", "Médio", "Difícil"] as const;
 
@@ -23,6 +25,8 @@ export function QuestaoCard({
   bloqueada?: boolean;
   rotuloSelecao?: string;
 }) {
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [enunciado, setEnunciado] = useState(questao.enunciado);
@@ -76,14 +80,22 @@ export function QuestaoCard({
   }
 
   async function excluir() {
-    if (!window.confirm("Excluir esta questão? Essa ação não pode ser desfeita.")) return;
+    if (excluindo || bloqueada) return;
+    setExcluindo(true);
     try {
-      await excluirQuestao(questao.turma_id, questao.id);
+      const resultado = await removerQuestoes(questao.turma_id, [questao.id]);
+      setConfirmandoExclusao(false);
       aoSelecionar?.(questao.id, false);
-      toast.success("Questão excluída.");
+      toast.success(
+        resultado.arquivadas.length
+          ? "Questão arquivada. As atividades foram mantidas."
+          : "Questão excluída.",
+      );
       aoMudar();
     } catch (erro) {
-      toast.error(erro instanceof Error ? erro.message : "Não foi possível excluir a questão.");
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível remover a questão.");
+    } finally {
+      setExcluindo(false);
     }
   }
 
@@ -158,6 +170,14 @@ export function QuestaoCard({
 
   return (
     <li className="rounded-2xl border border-border bg-background/40 p-4">
+      <ConfirmarRemocaoQuestoes
+        aberto={confirmandoExclusao}
+        quantidade={1}
+        emUso={questao.em_uso ? 1 : 0}
+        ocupado={excluindo}
+        aoAbrir={setConfirmandoExclusao}
+        aoConfirmar={() => void excluir()}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           {selecionavel ? (
@@ -227,14 +247,10 @@ export function QuestaoCard({
             {questao.aprovada ? <X className="size-3.5" /> : <Check className="size-3.5" />}
           </button>
           <button
-            onClick={() => void excluir()}
-            disabled={bloqueada || questao.em_uso}
-            title={
-              questao.em_uso
-                ? "Questões vinculadas a atividades são preservadas"
-                : "Excluir questão"
-            }
-            aria-label="Excluir questão"
+            onClick={() => setConfirmandoExclusao(true)}
+            disabled={bloqueada || excluindo}
+            title={questao.em_uso ? "Arquivar questão e manter nas atividades" : "Excluir questão"}
+            aria-label={questao.em_uso ? "Arquivar questão" : "Excluir questão"}
             className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition hover:text-danger disabled:opacity-40"
           >
             <Trash2 className="size-3.5" />

@@ -19,6 +19,18 @@ const migracaoSupabase = readFileSync(
   ),
   "utf8",
 );
+const migracaoArquivamento = readFileSync(
+  new URL("../../supabase/migrations/20260913010000_arquivar_questoes_em_uso.sql", import.meta.url),
+  "utf8",
+);
+
+async function removerQuestoes(ids: string[]) {
+  const { rows } = await db.query<{ resultado: { excluidas: string[]; arquivadas: string[] } }>(
+    "SELECT public.remover_questoes_professor($1, $2::uuid[]) AS resultado",
+    [turma, ids],
+  );
+  return rows[0]!.resultado;
+}
 
 async function excluirMaterial(apagarQuestoes = false) {
   const { rows } = await db.query<{ resultado: Resultado }>(
@@ -57,6 +69,7 @@ describe("exclusão opcional de materiais e questões (PostgreSQL)", () => {
       CREATE TABLE public.submissoes (atividade_id uuid REFERENCES public.atividades(id), xp integer);
     `);
     await db.exec(migracaoSupabase);
+    await db.exec(migracaoArquivamento);
   });
 
   beforeEach(async () => {
@@ -162,5 +175,66 @@ describe("exclusão opcional de materiais e questões (PostgreSQL)", () => {
     await assert.rejects(excluirMaterial(true), /Aguarde/);
     assert.equal((await db.query("SELECT * FROM public.materiais")).rows.length, 1);
     assert.equal((await db.query("SELECT * FROM public.questoes")).rows.length, 3);
+  });
+
+  it("remove questões antigas da revisão mantendo vínculos e resultados dos alunos", async () => {
+    await db.exec("SET ROLE authenticated");
+    const resultado = await removerQuestoes([usada, rascunho]);
+    assert.deepEqual(resultado.excluidas, []);
+    assert.deepEqual(resultado.arquivadas.sort(), [usada, rascunho].sort());
+    await db.exec("RESET ROLE");
+    assert.deepEqual((await db.query("SELECT id FROM public.questoes WHERE NOT arquivada")).rows, [
+      { id: livre },
+    ]);
+    assert.equal(
+      (
+        await db.query(
+          "SELECT q.id FROM public.atividade_questoes aq JOIN public.questoes q ON q.id = aq.questao_id",
+        )
+      ).rows.length,
+      2,
+    );
+    assert.deepEqual((await db.query("SELECT xp FROM public.submissoes")).rows, [{ xp: 100 }]);
+  });
+
+  it("exclui questões novas e arquiva antigas em uma única operação", async () => {
+    const resultado = await removerQuestoes([livre, usada, rascunho, livre]);
+    assert.deepEqual(resultado.excluidas, [livre]);
+    assert.deepEqual(resultado.arquivadas.sort(), [usada, rascunho].sort());
+    assert.equal(
+      (await db.query("SELECT * FROM public.questoes WHERE NOT arquivada")).rows.length,
+      0,
+    );
+    assert.equal((await db.query("SELECT * FROM public.materiais")).rows.length, 1);
+    assert.equal((await db.query("SELECT * FROM public.atividade_questoes")).rows.length, 2);
+  });
+
+  it("não remove questões de outra turma nem de outro professor", async () => {
+    await db.exec(`INSERT INTO public.turmas VALUES ('${outroProfessor}', '${outroProfessor}');
+      INSERT INTO public.questoes (id, turma_id) VALUES ('${outroProfessor}', '${outroProfessor}');`);
+    await assert.rejects(removerQuestoes([livre, outroProfessor]), /não pertence/);
+    for (const usuario of [outroProfessor, ""]) {
+      await db.query("SELECT set_config('request.jwt.claim.sub', $1, false)", [usuario]);
+      await assert.rejects(removerQuestoes([usada]), /permissão/);
+    }
+    assert.equal((await db.query("SELECT * FROM public.questoes WHERE arquivada")).rows.length, 0);
+    assert.equal((await db.query("SELECT * FROM public.questoes")).rows.length, 4);
+  });
+
+  it("rejeita lote inválido sem excluir ou arquivar parcialmente", async () => {
+    await assert.rejects(removerQuestoes([]), /Selecione/);
+    await assert.rejects(removerQuestoes([livre, usada, outroProfessor]), /não existe mais/);
+    assert.equal(
+      (await db.query("SELECT * FROM public.questoes WHERE NOT arquivada")).rows.length,
+      3,
+    );
+  });
+
+  it("reaplicar a migração não restaura questões arquivadas", async () => {
+    await removerQuestoes([usada]);
+    await db.exec(migracaoArquivamento);
+    assert.deepEqual((await db.query("SELECT id FROM public.questoes WHERE arquivada")).rows, [
+      { id: usada },
+    ]);
   });
 });

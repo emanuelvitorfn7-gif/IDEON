@@ -1,3 +1,4 @@
+import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarCodigoTurma } from "@/lib/gamificacao";
 import { validarConteudoMaterial } from "@/lib/conteudo-material";
@@ -23,6 +24,7 @@ export type Questao = {
   dificuldade: string;
   aprovada: boolean;
   em_uso: boolean;
+  arquivada: boolean;
 };
 
 export type DetalheResposta = { questao_id: string; assunto: string; acertou: boolean };
@@ -34,6 +36,7 @@ function normalizarQuestao(q: Record<string, unknown>): Questao {
     ...(q as unknown as Questao),
     alternativas,
     em_uso: Array.isArray(vinculos) && vinculos.length > 0,
+    arquivada: q["arquivada"] === true,
   };
 }
 
@@ -124,7 +127,9 @@ export async function listarQuestoes(turmaId: string) {
     .eq("turma_id", turmaId)
     .order("criado_em", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((q) => normalizarQuestao(q as Record<string, unknown>));
+  return (data ?? [])
+    .map((q) => normalizarQuestao(q as Record<string, unknown>))
+    .filter((q) => !q.arquivada);
 }
 
 export async function atualizarQuestao(id: string, patch: Partial<Omit<Questao, "em_uso">>) {
@@ -134,11 +139,12 @@ export async function atualizarQuestao(id: string, patch: Partial<Omit<Questao, 
 
 type ResultadoExclusao = { excluidas: string[]; preservadas: number };
 
-function erroExclusao(error: { code?: string; message: string }): Error {
+function erroExclusao(
+  error: { code?: string; message: string },
+  recurso = "exclusão de materiais",
+): Error {
   if (error.code === "PGRST202") {
-    return new Error(
-      "A exclusão ainda não está disponível. Peça ao responsável pela aplicação para habilitar o recurso.",
-    );
+    return new Error(`A configuração de ${recurso} ainda não foi concluída neste ambiente.`);
   }
   return new Error(error.message);
 }
@@ -157,14 +163,17 @@ export async function excluirQuestoes(turmaId: string, ids: string[]) {
     p_turma_id: turmaId,
     p_questao_ids: [...new Set(ids)],
   });
-  if (error) throw erroExclusao(error);
+  if (error) throw erroExclusao(error, "exclusão de questões");
   return data as ResultadoExclusao;
 }
 
-export async function excluirQuestao(turmaId: string, id: string) {
-  const resultado = await excluirQuestoes(turmaId, [id]);
-  if (resultado.preservadas)
-    throw new Error("Esta questão está em uma atividade e foi preservada.");
+export async function removerQuestoes(turmaId: string, ids: string[]) {
+  const { data, error } = await supabase.rpc("remover_questoes_professor", {
+    p_turma_id: turmaId,
+    p_questao_ids: [...new Set(ids)],
+  });
+  if (error) throw erroExclusao(error, "remoção e arquivamento de questões");
+  return data as { excluidas: string[]; arquivadas: string[] };
 }
 
 export async function listarAtividades(turmaId: string) {
@@ -177,6 +186,27 @@ export async function listarAtividades(turmaId: string) {
   return data ?? [];
 }
 
+export async function excluirAtividade(atividadeId: string) {
+  const { data, error } = await supabase.rpc("excluir_atividade_professor", {
+    p_atividade_id: atividadeId,
+  });
+  if (error) throw erroExclusao(error, "exclusão de atividades");
+  return data as ResultadoExclusao;
+}
+
+export async function atualizarPrazoAtividade(
+  atividadeId: string,
+  prazo: string | null,
+  excluirAoVencer: boolean,
+) {
+  const { error } = await supabase.rpc("atualizar_prazo_atividade_professor", {
+    p_atividade_id: atividadeId,
+    p_prazo: prazo,
+    p_excluir_ao_vencer: excluirAoVencer,
+  });
+  if (error) throw erroExclusao(error, "prazos de atividades");
+}
+
 export async function salvarAtividade(input: {
   turmaId: string;
   titulo: string;
@@ -185,36 +215,21 @@ export async function salvarAtividade(input: {
   xp: number;
   questoes: string[];
   publicada: boolean;
+  excluirAoVencer: boolean;
 }) {
   if (input.questoes.length === 0) throw new Error("Selecione pelo menos uma questão aprovada.");
-  const { data: aprovadas, error: erroQuestoes } = await supabase
-    .from("questoes")
-    .select("id")
-    .in("id", input.questoes)
-    .eq("turma_id", input.turmaId)
-    .eq("aprovada", true);
-  if (erroQuestoes) throw erroQuestoes;
-  if ((aprovadas ?? []).length !== input.questoes.length) {
-    throw new Error("A atividade contém questão pendente ou de outra turma.");
-  }
-  const { data, error } = await supabase
-    .from("atividades")
-    .insert({
-      turma_id: input.turmaId,
-      titulo: input.titulo,
-      descricao: input.descricao,
-      prazo: input.prazo,
-      xp: input.xp,
-      publicada: input.publicada,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-
-  const vinculos = input.questoes.map((questao_id) => ({ atividade_id: data.id, questao_id }));
-  const { error: erroVinculo } = await supabase.from("atividade_questoes").insert(vinculos);
-  if (erroVinculo) throw erroVinculo;
-  return data;
+  const { data, error } = await supabase.rpc("criar_atividade_professor", {
+    p_turma_id: input.turmaId,
+    p_titulo: input.titulo,
+    p_descricao: input.descricao,
+    p_prazo: input.prazo,
+    p_xp: input.xp,
+    p_questao_ids: [...new Set(input.questoes)],
+    p_publicada: input.publicada,
+    p_excluir_ao_vencer: input.excluirAoVencer,
+  });
+  if (error) throw erroExclusao(error, "criação de atividades");
+  return data as Database["public"]["Tables"]["atividades"]["Row"];
 }
 
 export const publicarAtividade = (
