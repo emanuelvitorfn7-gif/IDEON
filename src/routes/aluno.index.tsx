@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ideon/StatCard";
 import { Barra } from "@/components/ideon/Barra";
 import { ActivityRunner } from "@/components/ideon/ActivityRunner";
 import { useAuth } from "@/hooks/useAuth";
+import { formatarPrazo } from "@/lib/datas";
 import { progressoNivel, tituloPorNivel, xpNoNivel, XP_POR_NIVEL } from "@/lib/gamificacao";
 import { entrarNaTurma, listarAtividadesDoAluno } from "@/services/ideon";
 
@@ -171,7 +172,8 @@ function PainelAluno() {
                 <div key={atividade.id} className="rounded-3xl glass-panel p-6">
                   <h3 className="text-display text-lg">{atividade.titulo}</h3>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {atividade.xp} XP{atividade.prazo ? ` · prazo ${atividade.prazo}` : ""}
+                    {atividade.xp} XP
+                    {atividade.prazo ? ` · prazo ${formatarPrazo(atividade.prazo)}` : ""}
                   </p>
                   <button
                     onClick={() => setAtividadeAberta(atividade.id)}

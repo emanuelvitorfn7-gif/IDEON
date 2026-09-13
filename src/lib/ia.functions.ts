@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { validarConteudoMaterial } from "@/lib/conteudo-material";
 
 const entrada = z.object({
   materialId: z.string().uuid(),
@@ -55,16 +56,15 @@ export const gerarQuestoes = createServerFn({
       throw new Error("Sem permissão sobre este material.");
     }
 
+    const conteudo = validarConteudoMaterial(material.conteudo ?? "");
+
     const apiKey = process.env["GEMINI_API_KEY"];
 
     if (!apiKey) {
       throw new Error("Chave de IA indisponível.");
     }
 
-    await supabase
-      .from("materiais")
-      .update({ status: "processando" })
-      .eq("id", material.id);
+    await supabase.from("materiais").update({ status: "processando" }).eq("id", material.id);
 
     const prompt = `
 Você é um assistente pedagógico.
@@ -77,7 +77,7 @@ ${material.titulo}
 
 CONTEÚDO:
 """
-${(material.conteudo ?? "").slice(0, 12000)}
+${conteudo}
 """
 
 Retorne SOMENTE um JSON válido com este formato:
@@ -148,14 +148,9 @@ REGRAS:
     );
 
     if (resposta.status === 429) {
-      await supabase
-        .from("materiais")
-        .update({ status: "erro" })
-        .eq("id", material.id);
+      await supabase.from("materiais").update({ status: "erro" }).eq("id", material.id);
 
-      throw new Error(
-        "Limite gratuito da IA atingido. Aguarde um pouco e tente novamente.",
-      );
+      throw new Error("Limite gratuito da IA atingido. Aguarde um pouco e tente novamente.");
     }
 
     if (!resposta.ok) {
@@ -163,14 +158,9 @@ REGRAS:
 
       console.error("Erro Gemini:", erroGemini);
 
-      await supabase
-        .from("materiais")
-        .update({ status: "erro" })
-        .eq("id", material.id);
+      await supabase.from("materiais").update({ status: "erro" }).eq("id", material.id);
 
-      throw new Error(
-        `Falha na geração das questões pela IA (${resposta.status}).`,
-      );
+      throw new Error(`Falha na geração das questões pela IA (${resposta.status}).`);
     }
 
     const json = (await resposta.json()) as {
@@ -190,10 +180,7 @@ REGRAS:
         .trim() ?? "";
 
     if (!texto) {
-      await supabase
-        .from("materiais")
-        .update({ status: "erro" })
-        .eq("id", material.id);
+      await supabase.from("materiais").update({ status: "erro" }).eq("id", material.id);
 
       throw new Error("A IA não retornou questões.");
     }
@@ -212,14 +199,9 @@ REGRAS:
       console.error("Resposta inválida do Gemini:", texto);
       console.error(erro);
 
-      await supabase
-        .from("materiais")
-        .update({ status: "erro" })
-        .eq("id", material.id);
+      await supabase.from("materiais").update({ status: "erro" }).eq("id", material.id);
 
-      throw new Error(
-        "A IA retornou questões incompletas. Tente gerar novamente.",
-      );
+      throw new Error("A IA retornou questões incompletas. Tente gerar novamente.");
     }
 
     if (questoes.length === 0) {
@@ -242,23 +224,15 @@ REGRAS:
       aprovada: false,
     }));
 
-    const { error: erroInsert } = await supabase
-      .from("questoes")
-      .insert(linhas);
+    const { error: erroInsert } = await supabase.from("questoes").insert(linhas);
 
     if (erroInsert) {
-      await supabase
-        .from("materiais")
-        .update({ status: "erro" })
-        .eq("id", material.id);
+      await supabase.from("materiais").update({ status: "erro" }).eq("id", material.id);
 
       throw new Error(erroInsert.message);
     }
 
-    await supabase
-      .from("materiais")
-      .update({ status: "pronto" })
-      .eq("id", material.id);
+    await supabase.from("materiais").update({ status: "pronto" }).eq("id", material.id);
 
     return {
       criadas: linhas.length,

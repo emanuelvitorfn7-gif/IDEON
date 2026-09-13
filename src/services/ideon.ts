@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { gerarCodigoTurma } from "@/lib/gamificacao";
+import { validarConteudoMaterial } from "@/lib/conteudo-material";
 
 export type Turma = {
   id: string;
@@ -21,13 +22,19 @@ export type Questao = {
   assunto: string;
   dificuldade: string;
   aprovada: boolean;
+  em_uso: boolean;
 };
 
 export type DetalheResposta = { questao_id: string; assunto: string; acertou: boolean };
 
 function normalizarQuestao(q: Record<string, unknown>): Questao {
   const alternativas = Array.isArray(q["alternativas"]) ? (q["alternativas"] as string[]) : [];
-  return { ...(q as unknown as Questao), alternativas };
+  const vinculos = q["atividade_questoes"];
+  return {
+    ...(q as unknown as Questao),
+    alternativas,
+    em_uso: Array.isArray(vinculos) && vinculos.length > 0,
+  };
 }
 
 /* ---------------- Professor ---------------- */
@@ -93,7 +100,7 @@ export async function criarMaterial(input: {
       professor_id: input.professorId,
       titulo: input.titulo,
       tipo: input.tipo,
-      conteudo: input.conteudo,
+      conteudo: validarConteudoMaterial(input.conteudo),
       status: "pronto",
     })
     .select()
@@ -113,21 +120,51 @@ export async function atualizarStatusMaterial(
 export async function listarQuestoes(turmaId: string) {
   const { data, error } = await supabase
     .from("questoes")
-    .select("*")
+    .select("*, atividade_questoes(atividade_id)")
     .eq("turma_id", turmaId)
     .order("criado_em", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((q) => normalizarQuestao(q as Record<string, unknown>));
 }
 
-export async function atualizarQuestao(id: string, patch: Partial<Questao>) {
+export async function atualizarQuestao(id: string, patch: Partial<Omit<Questao, "em_uso">>) {
   const { error } = await supabase.from("questoes").update(patch).eq("id", id);
   if (error) throw error;
 }
 
-export async function excluirQuestao(id: string) {
-  const { error } = await supabase.from("questoes").delete().eq("id", id);
-  if (error) throw error;
+type ResultadoExclusao = { excluidas: string[]; preservadas: number };
+
+function erroExclusao(error: { code?: string; message: string }): Error {
+  if (error.code === "PGRST202") {
+    return new Error(
+      "A exclusão ainda não está disponível. Peça ao responsável pela aplicação para habilitar o recurso.",
+    );
+  }
+  return new Error(error.message);
+}
+
+export async function excluirMaterial(materialId: string, excluirQuestoesSemUso = false) {
+  const { data, error } = await supabase.rpc("excluir_material_professor", {
+    p_material_id: materialId,
+    p_excluir_questoes: excluirQuestoesSemUso,
+  });
+  if (error) throw erroExclusao(error);
+  return data as ResultadoExclusao;
+}
+
+export async function excluirQuestoes(turmaId: string, ids: string[]) {
+  const { data, error } = await supabase.rpc("excluir_questoes_professor", {
+    p_turma_id: turmaId,
+    p_questao_ids: [...new Set(ids)],
+  });
+  if (error) throw erroExclusao(error);
+  return data as ResultadoExclusao;
+}
+
+export async function excluirQuestao(turmaId: string, id: string) {
+  const resultado = await excluirQuestoes(turmaId, [id]);
+  if (resultado.preservadas)
+    throw new Error("Esta questão está em uma atividade e foi preservada.");
 }
 
 export async function listarAtividades(turmaId: string) {

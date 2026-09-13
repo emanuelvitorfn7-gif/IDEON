@@ -14,8 +14,11 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/ideon/AppShell";
 import { Protegido } from "@/components/ideon/Protegido";
 import { StatCard } from "@/components/ideon/StatCard";
-import { QuestaoCard } from "@/components/ideon/QuestaoCard";
+import { RevisaoQuestoes } from "@/components/ideon/RevisaoQuestoes";
+import { ExcluirMaterial } from "@/components/ideon/ExcluirMaterial";
 import { gerarQuestoes } from "@/lib/ia.functions";
+import { validarConteudoMaterial, MAX_CARACTERES_MATERIAL } from "@/lib/conteudo-material";
+import { formatarPrazo } from "@/lib/datas";
 import {
   atualizarStatusMaterial,
   criarMaterial,
@@ -26,7 +29,6 @@ import {
   obterTurma,
   publicarAtividade,
   salvarAtividade,
-  atualizarQuestao,
 } from "@/services/ideon";
 
 export const Route = createFileRoute("/Professor/turma/$id")({
@@ -45,6 +47,7 @@ function PainelTurma() {
   const queryClient = useQueryClient();
 
   const [mostrarFormMaterial, setMostrarFormMaterial] = useState(false);
+  const [salvandoMaterial, setSalvandoMaterial] = useState<string | null>(null);
   const [gerandoPara, setGerandoPara] = useState<string | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [mostrarFormAtividade, setMostrarFormAtividade] = useState(false);
@@ -73,6 +76,9 @@ function PainelTurma() {
 
   const pendentes = questoes.filter((q) => !q.aprovada).length;
   const aprovadas = questoes.filter((q) => q.aprovada);
+  const selecionadasValidas = new Set(
+    aprovadas.filter((q) => selecionadas.has(q.id)).map((q) => q.id),
+  );
   const publicadas = atividades.filter((a) => (a as { publicada: boolean }).publicada).length;
 
   function recarregar() {
@@ -83,27 +89,38 @@ function PainelTurma() {
 
   async function aoCriarMaterial(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const titulo = String(form.get("titulo") ?? "");
-    const conteudo = String(form.get("conteudo") ?? "");
-    if (!titulo.trim() || conteudo.trim().length < 50) {
-      toast.error("Cole pelo menos algumas linhas de conteúdo (mínimo 50 caracteres).");
-      return;
-    }
+    if (salvandoMaterial || !turma) return;
+    const formulario = e.currentTarget;
+    const form = new FormData(formulario);
+    const titulo = String(form.get("titulo") ?? "").trim();
+    const texto = String(form.get("conteudo") ?? "").trim();
+    const arquivo = form.get("pdf");
+    const pdf = arquivo instanceof File && arquivo.name ? arquivo : null;
     try {
+      if (!titulo) throw new Error("Informe o título do material.");
+      setSalvandoMaterial(pdf ? "Lendo PDF..." : "Salvando...");
+      let textoPdf = "";
+      if (pdf) {
+        const { extrairTextoPdf } = await import("@/lib/pdf");
+        textoPdf = await extrairTextoPdf(pdf);
+      }
+      const conteudo = validarConteudoMaterial([textoPdf, texto].filter(Boolean).join("\n\n"));
+      setSalvandoMaterial("Salvando...");
       await criarMaterial({
         turmaId: id,
-        professorId: turma!.professor_id,
+        professorId: turma.professor_id,
         titulo,
-        tipo: "texto",
+        tipo: pdf ? "pdf" : "texto",
         conteudo,
       });
+      formulario.reset();
       toast.success("Material adicionado.");
       setMostrarFormMaterial(false);
       recarregar();
-      e.currentTarget.reset();
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar o material.");
+    } finally {
+      setSalvandoMaterial(null);
     }
   }
 
@@ -134,11 +151,13 @@ function PainelTurma() {
 
   async function aoPublicarAtividade(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (selecionadas.size === 0) {
+    if (publicando) return;
+    const formulario = e.currentTarget;
+    if (selecionadasValidas.size === 0) {
       toast.error("Selecione pelo menos uma questão aprovada.");
       return;
     }
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formulario);
     setPublicando(true);
     try {
       const acao =
@@ -151,15 +170,15 @@ function PainelTurma() {
         descricao: String(form.get("descricao") ?? ""),
         prazo: String(form.get("prazo") ?? "") || null,
         xp: Number(form.get("xp") ?? 100),
-        questoes: Array.from(selecionadas),
+        questoes: Array.from(selecionadasValidas),
       };
       if (acao === "rascunho") await salvarAtividade({ ...dadosAtividade, publicada: false });
       else await publicarAtividade(dadosAtividade);
+      formulario.reset();
       toast.success(acao === "rascunho" ? "Rascunho salvo." : "Atividade publicada para a turma.");
       setSelecionadas(new Set());
       setMostrarFormAtividade(false);
       recarregar();
-      e.currentTarget.reset();
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Não foi possível publicar a atividade.");
     } finally {
@@ -220,6 +239,7 @@ function PainelTurma() {
             <h2 className="text-display text-2xl">Materiais</h2>
             <button
               onClick={() => setMostrarFormMaterial((v) => !v)}
+              disabled={Boolean(salvandoMaterial)}
               className="rounded-xl border border-aura/30 bg-aura/10 px-4 py-2 text-xs font-bold text-aura transition hover:bg-aura/20"
             >
               {mostrarFormMaterial ? "Cancelar" : "+ Adicionar material"}
@@ -231,29 +251,47 @@ function PainelTurma() {
               onSubmit={aoCriarMaterial}
               className="mt-5 space-y-3 rounded-2xl border border-border p-4"
             >
-              <input
-                name="titulo"
-                required
-                placeholder="Título do material (ex.: Aula 4 — Recursividade)"
-                className="w-full rounded-xl border border-input bg-background/60 px-4 py-2.5 text-sm outline-none focus:border-aura/50"
-              />
-              <textarea
-                name="conteudo"
-                required
-                rows={6}
-                placeholder="Cole aqui o conteúdo da aula (texto). A IA vai gerar questões só com base nisso."
-                className="w-full rounded-xl border border-input bg-background/60 px-4 py-2.5 text-sm outline-none focus:border-aura/50"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Upload de PDF com extração automática de texto ainda não está disponível — por
-                enquanto, cole o texto do material.
-              </p>
-              <button
-                type="submit"
-                className="rounded-xl bg-nova px-5 py-2.5 text-sm font-semibold text-foreground transition hover:opacity-90"
-              >
-                Salvar material
-              </button>
+              <fieldset disabled={Boolean(salvandoMaterial)} className="space-y-3">
+                <input
+                  name="titulo"
+                  required
+                  placeholder="Título do material (ex.: Aula 4 — Recursividade)"
+                  className="w-full rounded-xl border border-input bg-background/60 px-4 py-2.5 text-sm outline-none focus:border-aura/50"
+                />
+                <textarea
+                  name="conteudo"
+                  rows={6}
+                  maxLength={MAX_CARACTERES_MATERIAL}
+                  aria-label="Conteúdo da aula (opcional ao anexar um PDF)"
+                  placeholder="Cole o conteúdo da aula ou anexe um PDF abaixo. Se preencher os dois, o texto complementará o PDF."
+                  className="w-full rounded-xl border border-input bg-background/60 px-4 py-2.5 text-sm outline-none focus:border-aura/50"
+                />
+                <label className="block text-sm font-medium">
+                  Anexar PDF
+                  <input
+                    type="file"
+                    name="pdf"
+                    accept="application/pdf,.pdf"
+                    aria-describedby="pdf-ajuda"
+                    className="mt-2 block w-full min-w-0 text-xs text-muted-foreground file:mr-3 file:rounded-xl file:border-0 file:bg-aura/15 file:px-4 file:py-2 file:font-semibold file:text-aura"
+                  />
+                </label>
+                <p id="pdf-ajuda" className="text-[11px] text-muted-foreground">
+                  PDF com texto selecionável, até 10 MB e 100 páginas. O texto será salvo para a IA
+                  gerar questões; imagens e PDFs digitalizados precisam ser convertidos em texto
+                  antes. Limite total: 100 mil caracteres.
+                </p>
+                <button
+                  type="submit"
+                  disabled={Boolean(salvandoMaterial) || !turma}
+                  className="rounded-xl bg-nova px-5 py-2.5 text-sm font-semibold text-foreground transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {salvandoMaterial ?? "Salvar material"}
+                </button>
+                <p role="status" className="text-xs text-muted-foreground">
+                  {salvandoMaterial}
+                </p>
+              </fieldset>
             </form>
           ) : null}
 
@@ -263,17 +301,17 @@ function PainelTurma() {
             <ul className="mt-5 space-y-3">
               {materiais.map((m) => {
                 const material = m as { id: string; titulo: string; tipo: string; status: string };
-                const gerando = gerandoPara === material.id;
+                const gerando = gerandoPara === material.id || material.status === "processando";
                 return (
                   <li
                     key={material.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background/40 p-4"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background/40 p-4"
                   >
                     <div>
                       <p className="text-sm font-semibold">{material.titulo}</p>
                       <p className="text-xs text-muted-foreground capitalize">{material.tipo}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
                           material.status === "erro"
@@ -287,7 +325,7 @@ function PainelTurma() {
                       </span>
                       <button
                         onClick={() => void aoGerarQuestoes(material.id)}
-                        disabled={gerando}
+                        disabled={gerando || gerandoPara !== null}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-aura px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
                       >
                         {gerando ? (
@@ -297,6 +335,17 @@ function PainelTurma() {
                         )}
                         Gerar questões
                       </button>
+                      <ExcluirMaterial
+                        material={material}
+                        bloqueado={gerando}
+                        aoExcluir={(ids) => {
+                          setSelecionadas(
+                            (atual) =>
+                              new Set([...atual].filter((idQuestao) => !ids.includes(idQuestao))),
+                          );
+                          recarregar();
+                        }}
+                      />
                     </div>
                   </li>
                 );
@@ -304,47 +353,15 @@ function PainelTurma() {
             </ul>
           )}
 
-          <h2 className="text-display mt-10 text-2xl">Revisão de questões</h2>
-          {pendentes > 0 ? (
-            <button
-              onClick={() =>
-                void Promise.all(
-                  questoes
-                    .filter((q) => !q.aprovada)
-                    .map((q) => atualizarQuestao(q.id, { aprovada: true })),
-                )
-                  .then(() => {
-                    toast.success("Todas as questões foram aprovadas.");
-                    recarregar();
-                  })
-                  .catch(() => toast.error("Não foi possível aprovar todas."))
-              }
-              className="mt-3 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-xs font-bold text-success"
-            >
-              Aprovar todas
-            </button>
-          ) : null}
-          <p className="mt-1 text-sm text-muted-foreground">
-            Aprove, edite ou exclua as questões antes de usá-las em uma atividade.
-          </p>
-          {questoes.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Nenhuma questão gerada ainda. Adicione um material e clique em "Gerar questões".
-            </p>
-          ) : (
-            <ul className="mt-5 space-y-3">
-              {questoes.map((q) => (
-                <QuestaoCard
-                  key={q.id}
-                  questao={q}
-                  selecionavel={q.aprovada}
-                  selecionada={selecionadas.has(q.id)}
-                  aoSelecionar={alternarSelecao}
-                  aoMudar={recarregar}
-                />
-              ))}
-            </ul>
-          )}
+          <RevisaoQuestoes
+            turmaId={id}
+            materiais={materiais}
+            questoes={questoes}
+            selecionadas={selecionadasValidas}
+            aoSelecionar={alternarSelecao}
+            aoLimparSelecao={() => setSelecionadas(new Set())}
+            aoMudar={recarregar}
+          />
         </section>
 
         <section className="flex flex-col gap-6 lg:col-span-5">
@@ -409,7 +426,7 @@ function PainelTurma() {
                   </label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {selecionadas.size} questão(ões) aprovada(s) selecionada(s) ao lado.
+                  {selecionadasValidas.size} questão(ões) aprovada(s) selecionada(s) ao lado.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -446,6 +463,7 @@ function PainelTurma() {
                     titulo: string;
                     xp: number;
                     publicada: boolean;
+                    prazo: string | null;
                   };
                   return (
                     <li
@@ -454,7 +472,10 @@ function PainelTurma() {
                     >
                       <div>
                         <p className="text-sm font-semibold">{atividade.titulo}</p>
-                        <p className="text-xs text-muted-foreground">{atividade.xp} XP</p>
+                        <p className="text-xs text-muted-foreground">
+                          {atividade.xp} XP
+                          {atividade.prazo ? ` · prazo ${formatarPrazo(atividade.prazo)}` : ""}
+                        </p>
                       </div>
                       <span
                         className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${

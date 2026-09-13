@@ -336,6 +336,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      excluir_material_professor: {
+        Args: { p_material_id: string; p_excluir_questoes?: boolean }
+        Returns: Json
+      }
+      excluir_questoes_professor: {
+        Args: { p_turma_id: string; p_questao_ids: string[] }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

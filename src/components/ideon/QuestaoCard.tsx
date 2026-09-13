@@ -12,12 +12,16 @@ export function QuestaoCard({
   selecionada,
   aoSelecionar,
   aoMudar,
+  bloqueada = false,
+  rotuloSelecao = "Selecionar questão para atividade",
 }: {
   questao: Questao;
   selecionavel?: boolean;
   selecionada?: boolean;
   aoSelecionar?: (id: string, valor: boolean) => void;
   aoMudar: () => void;
+  bloqueada?: boolean;
+  rotuloSelecao?: string;
 }) {
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -74,7 +78,8 @@ export function QuestaoCard({
   async function excluir() {
     if (!window.confirm("Excluir esta questão? Essa ação não pode ser desfeita.")) return;
     try {
-      await excluirQuestao(questao.id);
+      await excluirQuestao(questao.turma_id, questao.id);
+      aoSelecionar?.(questao.id, false);
       toast.success("Questão excluída.");
       aoMudar();
     } catch (erro) {
@@ -159,6 +164,8 @@ export function QuestaoCard({
             <input
               type="checkbox"
               checked={Boolean(selecionada)}
+              disabled={bloqueada}
+              aria-label={rotuloSelecao}
               onChange={(e) => aoSelecionar?.(questao.id, e.target.checked)}
               className="mt-1 accent-aura"
             />
@@ -166,6 +173,11 @@ export function QuestaoCard({
           <p className="text-sm">{questao.enunciado}</p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          {questao.em_uso ? (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+              Em atividade
+            </span>
+          ) : null}
           <span className="rounded-full bg-aura/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-aura">
             Gerada por IA
           </span>
@@ -216,8 +228,14 @@ export function QuestaoCard({
           </button>
           <button
             onClick={() => void excluir()}
-            aria-label="Excluir"
-            className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition hover:text-danger"
+            disabled={bloqueada || questao.em_uso}
+            title={
+              questao.em_uso
+                ? "Questões vinculadas a atividades são preservadas"
+                : "Excluir questão"
+            }
+            aria-label="Excluir questão"
+            className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition hover:text-danger disabled:opacity-40"
           >
             <Trash2 className="size-3.5" />
           </button>
