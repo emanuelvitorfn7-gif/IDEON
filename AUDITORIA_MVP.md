@@ -1,5 +1,10 @@
 # Auditoria do MVP Ideon
 
+> Registro histórico de uma etapa anterior do desenvolvimento. As limitações e
+> próximas etapas abaixo descrevem aquele momento; o envio de PDF, por exemplo,
+> já foi implementado depois. Consulte o [README principal](README.md) para as
+> funcionalidades atuais e as instruções de instalação e avaliação.
+
 ## O que já existia e foi preservado
 
 - React 19, TypeScript, TanStack Start/Router/Query e Supabase.

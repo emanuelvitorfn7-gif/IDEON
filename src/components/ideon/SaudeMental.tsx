@@ -86,7 +86,7 @@ const dicas = [
     texto:
       "Entre as tarefas, experimente uma pausa longe da tela: ouvir uma música ou olhar pela janela. Você pode escolher o que for confortável agora.",
     fonte:
-      "https://www.ce.gov.br/saude/2025/01/10/janeiro-branco-pausas-no-dia-sao-importantes-para-a-saude-mental-e-a-produtividade-no-trabalho/",
+      "https://www.gov.br/secom/pt-br/assuntos/uso-de-telas-por-criancas-e-adolescentes/guia/destaques-do-guia/em-busca-do-bem-estar-nas-experiencias-digitais",
   },
   {
     titulo: "Movimente-se no seu ritmo",
@@ -94,7 +94,7 @@ const dicas = [
     texto:
       "Uma caminhada, uma dança ou um movimento adaptado às suas possibilidades pode fazer parte do cuidado. Respeite seus limites e as orientações de saúde que você já recebeu.",
     fonte:
-      "https://bvsms.saude.gov.br/bvs/publicacoes/guia_atividade_fisica_populacao_brasileira.pdf",
+      "https://www.gov.br/servidor/pt-br/assuntos/contecomigo/paginas/paginas-dos-hyperlinks/bem-estar-e-saude-1/exercicios-fisicos-em-casa",
   },
   {
     titulo: "Cultive sua rede de apoio",
