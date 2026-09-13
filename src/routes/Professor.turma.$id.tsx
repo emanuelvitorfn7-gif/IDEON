@@ -1,3 +1,4 @@
+import { DURACAO_MINIMA, DURACAO_MAXIMA } from "@/lib/duracao-atividade";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { RevisaoQuestoes } from "@/components/ideon/RevisaoQuestoes";
 import { AcoesAtividade } from "@/components/ideon/AcoesAtividade";
 import { ExcluirMaterial } from "@/components/ideon/ExcluirMaterial";
 import { gerarQuestoes } from "@/lib/ia.functions";
+import { MIN_QUESTOES_IA, MAX_QUESTOES_IA, QUANTIDADE_PADRAO_IA } from "@/lib/questoes-ia";
 import { validarConteudoMaterial, MAX_CARACTERES_MATERIAL } from "@/lib/conteudo-material";
 import { formatarPrazo, prazoParaISO } from "@/lib/datas";
 import {
@@ -50,6 +52,7 @@ function PainelTurma() {
   const [mostrarFormMaterial, setMostrarFormMaterial] = useState(false);
   const [salvandoMaterial, setSalvandoMaterial] = useState<string | null>(null);
   const [gerandoPara, setGerandoPara] = useState<string | null>(null);
+  const [quantidadesPorMaterial, setQuantidadesPorMaterial] = useState<Record<string, number>>({});
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [mostrarFormAtividade, setMostrarFormAtividade] = useState(false);
   const [publicando, setPublicando] = useState(false);
@@ -128,14 +131,16 @@ function PainelTurma() {
   }
 
   async function aoGerarQuestoes(materialId: string) {
+    if (gerandoPara !== null) return;
+    const quantidade = quantidadesPorMaterial[materialId] ?? QUANTIDADE_PADRAO_IA;
     setGerandoPara(materialId);
     try {
       await atualizarStatusMaterial(materialId, "processando");
       recarregar();
-      const resultado = await gerarQuestoes({ data: { materialId, quantidade: 6 } });
+      const resultado = await gerarQuestoes({ data: { materialId, quantidade } });
       toast.success(`${resultado.criadas} questões geradas. Revise antes de publicar.`);
     } catch (erro) {
-      await atualizarStatusMaterial(materialId, "erro");
+      await atualizarStatusMaterial(materialId, "erro").catch(() => undefined);
       toast.error(erro instanceof Error ? erro.message : "Falha ao gerar questões com IA.");
     } finally {
       setGerandoPara(null);
@@ -174,6 +179,7 @@ function PainelTurma() {
         prazo: prazoParaISO(String(form.get("prazo") ?? "")),
         excluirAoVencer: form.get("excluir_ao_vencer") === "on",
         xp: Number(form.get("xp") ?? 100),
+        duracaoMinutos: Number(form.get("duracao_minutos")),
         questoes: Array.from(selecionadasValidas),
       };
       if (acao === "rascunho") await salvarAtividade({ ...dadosAtividade, publicada: false });
@@ -250,6 +256,10 @@ function PainelTurma() {
             </button>
           </div>
 
+          <p className="mt-3 text-xs text-muted-foreground">
+            Escolha de {MIN_QUESTOES_IA} a {MAX_QUESTOES_IA} questões por geração. Depois, aprove e
+            selecione as questões que vão compor a atividade.
+          </p>
           {mostrarFormMaterial ? (
             <form
               onSubmit={aoCriarMaterial}
@@ -306,6 +316,7 @@ function PainelTurma() {
               {materiais.map((m) => {
                 const material = m as { id: string; titulo: string; tipo: string; status: string };
                 const gerando = gerandoPara === material.id || material.status === "processando";
+                const quantidade = quantidadesPorMaterial[material.id] ?? QUANTIDADE_PADRAO_IA;
                 return (
                   <li
                     key={material.id}
@@ -316,6 +327,33 @@ function PainelTurma() {
                       <p className="text-xs text-muted-foreground capitalize">{material.tipo}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        Questões
+                        <select
+                          aria-label={`Quantidade de questões para ${material.titulo}`}
+                          value={quantidade}
+                          disabled={gerando || gerandoPara !== null}
+                          onChange={(e) =>
+                            setQuantidadesPorMaterial((atual) => ({
+                              ...atual,
+                              [material.id]: Number(e.target.value),
+                            }))
+                          }
+                          className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-aura/50 disabled:opacity-60"
+                        >
+                          {Array.from(
+                            { length: MAX_QUESTOES_IA - MIN_QUESTOES_IA + 1 },
+                            (_, indice) => {
+                              const numero = MIN_QUESTOES_IA + indice;
+                              return (
+                                <option key={numero} value={numero}>
+                                  {numero}
+                                </option>
+                              );
+                            },
+                          )}
+                        </select>
+                      </label>
                       <span
                         className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
                           material.status === "erro"
@@ -337,7 +375,9 @@ function PainelTurma() {
                         ) : (
                           <Sparkles className="size-3.5" />
                         )}
-                        Gerar questões
+                        {gerando
+                          ? "Gerando..."
+                          : `Gerar ${quantidade} ${quantidade === 1 ? "questão" : "questões"}`}
                       </button>
                       <ExcluirMaterial
                         material={material}
@@ -404,6 +444,24 @@ function PainelTurma() {
                   placeholder="Descrição (opcional)"
                   className="w-full rounded-xl border border-input bg-background/60 px-4 py-2.5 text-sm outline-none focus:border-aura/50"
                 />
+                <label className="block text-sm">
+                  Duração por aluno (minutos) · obrigatória
+                  <input
+                    type="number"
+                    name="duracao_minutos"
+                    required
+                    min={DURACAO_MINIMA}
+                    max={DURACAO_MAXIMA}
+                    step={1}
+                    placeholder="Ex.: 30"
+                    className="mt-1 w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-sm outline-none focus:border-aura/50"
+                  />
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Escolha de {DURACAO_MINIMA} a {DURACAO_MAXIMA} minutos. O tempo começa quando cada
+                  aluno inicia a atividade e continua mesmo ao sair. As respostas devem ser enviadas
+                  antes de acabar a duração ou o prazo final, o que acontecer primeiro.
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
                     <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -478,6 +536,7 @@ function PainelTurma() {
                     publicada: boolean;
                     prazo: string | null;
                     prazo_com_hora: boolean;
+                    duracao_minutos: number | null;
                     excluir_ao_vencer: boolean;
                   };
                   return (
@@ -489,6 +548,9 @@ function PainelTurma() {
                         <p className="text-sm font-semibold">{atividade.titulo}</p>
                         <p className="text-xs text-muted-foreground">
                           {atividade.xp} XP
+                          {atividade.duracao_minutos
+                            ? ` · ${atividade.duracao_minutos} min por aluno`
+                            : " · Defina a duração para liberar o início"}
                           {atividade.prazo
                             ? ` · prazo ${formatarPrazo(atividade.prazo, atividade.prazo_com_hora)}`
                             : ""}

@@ -1,9 +1,15 @@
+import { formatarContagem, segundosRestantes } from "@/lib/duracao-atividade";
+import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatarPrazo } from "@/lib/datas";
-import { carregarAtividadeAluno, enviarSubmissao } from "@/lib/atividade.functions";
+import {
+  carregarAtividadeAluno,
+  enviarSubmissao,
+  iniciarAtividadeAluno,
+} from "@/lib/atividade.functions";
 
 export function ActivityRunner({
   atividadeId,
@@ -13,32 +19,66 @@ export function ActivityRunner({
   aoFechar: () => void;
 }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const queryKey = ["atividade-segura", atividadeId, user?.id];
+  const [iniciando, setIniciando] = useState(false);
   const [respostas, setRespostas] = useState<Record<string, number>>({});
   const [enviando, setEnviando] = useState(false);
-  const [agora, setAgora] = useState(Date.now);
+  const [agora, setAgora] = useState(() => performance.now());
   useEffect(() => {
-    const timer = window.setInterval(() => setAgora(Date.now()), 1000);
+    const timer = window.setInterval(() => setAgora(performance.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const [resultado, setResultado] = useState<Awaited<ReturnType<typeof enviarSubmissao>> | null>(
-    null,
-  );
+  const [resultadoEnviado, setResultado] = useState<Awaited<
+    ReturnType<typeof enviarSubmissao>
+  > | null>(null);
   const { data, isLoading, error } = useQuery({
-    queryKey: ["atividade-segura", atividadeId],
-    queryFn: () => carregarAtividadeAluno({ data: { atividadeId } }),
+    queryKey,
+    queryFn: async () => {
+      const atividade = await carregarAtividadeAluno({ data: { atividadeId } });
+      return { ...atividade, recebidoEm: performance.now() };
+    },
     refetchInterval: 30_000,
   });
 
+  const resultado = resultadoEnviado ?? data?.resultado;
+  const decorrido = data ? Math.max(0, agora - data.recebidoEm) : 0;
+  const restante = data?.termina_em
+    ? segundosRestantes(data.termina_em, data.agora_servidor, decorrido)
+    : null;
   const prazoEncerrado = Boolean(
-    data?.prazo_com_hora && data.prazo && new Date(data.prazo).getTime() <= agora,
+    data?.prazo_com_hora &&
+    data.prazo &&
+    segundosRestantes(data.prazo, data.agora_servidor, decorrido) === 0,
   );
+  const tempoEncerrado = !resultado && (prazoEncerrado || restante === 0);
+
+  async function iniciar() {
+    if (iniciando || error) return;
+    setIniciando(true);
+    try {
+      // Cancela leituras anteriores para que não sobrescrevam a tentativa recém-iniciada.
+      await queryClient.cancelQueries({ queryKey });
+      const atividade = await iniciarAtividadeAluno({ data: { atividadeId } });
+      queryClient.setQueryData(queryKey, { ...atividade, recebidoEm: performance.now() });
+      setAgora(performance.now());
+    } catch (erroInicio) {
+      toast.error(erroInicio instanceof Error ? erroInicio.message : "Não foi possível iniciar.");
+    } finally {
+      setIniciando(false);
+    }
+  }
 
   async function enviar() {
-    if (prazoEncerrado || error) {
+    if (enviando || !data?.iniciada_em || tempoEncerrado || error) {
       toast.error("Esta atividade não está mais disponível para respostas.");
       return;
     }
-    if (!data || Object.keys(respostas).length !== data.questoes.length) {
+    if (
+      !data ||
+      data.questoes.length === 0 ||
+      data.questoes.some((q) => respostas[q.id] === undefined)
+    ) {
       toast.error("Responda todas as questões antes de enviar.");
       return;
     }
@@ -46,6 +86,7 @@ export function ActivityRunner({
     try {
       const resposta = await enviarSubmissao({ data: { atividadeId, respostas } });
       setResultado(resposta);
+      await queryClient.invalidateQueries({ queryKey });
       toast.success(
         resposta.ja_enviada
           ? "Esta atividade já havia sido enviada."
@@ -53,6 +94,7 @@ export function ActivityRunner({
       );
       await queryClient.invalidateQueries({ queryKey: ["atividades-aluno"] });
     } catch (erroEnvio) {
+      void queryClient.invalidateQueries({ queryKey });
       toast.error(
         erroEnvio instanceof Error ? erroEnvio.message : "Não foi possível enviar a atividade.",
       );
@@ -89,9 +131,50 @@ export function ActivityRunner({
                 Prazo: {formatarPrazo(data.prazo, data.prazo_com_hora)} (Brasília)
               </p>
             ) : null}
-            {prazoEncerrado ? (
+            {data.iniciada_em && restante !== null && !resultado ? (
+              <div className="sticky top-2 z-10 mt-4 rounded-2xl border border-aura/30 bg-background p-4">
+                <p className={restante <= 60 ? "font-bold text-warning" : "font-bold text-aura"}>
+                  Tempo restante:{" "}
+                  <span role="timer" aria-label="Tempo restante" className="tabular-nums">
+                    {formatarContagem(restante)}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Envie suas respostas antes de o tempo acabar. Sair não pausa o cronômetro.
+                </p>
+              </div>
+            ) : null}
+            {!data.iniciada_em && !resultado ? (
+              <div className="mt-6 rounded-2xl border border-border p-5">
+                {data.duracao_minutos ? (
+                  <>
+                    <p className="font-semibold">Duração: {data.duracao_minutos} minutos</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      O cronômetro começa ao clicar em iniciar. Fechar ou atualizar a página não
+                      reinicia o tempo. Envie todas as respostas antes do fim; não há envio
+                      automático.
+                      {data.prazo_com_hora && data.prazo
+                        ? " Se o prazo final chegar antes, o tempo disponível será menor."
+                        : ""}
+                    </p>
+                    <button
+                      onClick={() => void iniciar()}
+                      disabled={iniciando || tempoEncerrado || Boolean(error)}
+                      className="mt-4 rounded-xl bg-aura px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
+                    >
+                      {iniciando ? "Iniciando…" : "Iniciar atividade"}
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-sm text-warning">
+                    O professor precisa definir a duração para liberar esta atividade.
+                  </p>
+                )}
+              </div>
+            ) : null}
+            {tempoEncerrado ? (
               <p role="status" className="mt-2 text-sm text-warning">
-                O prazo para responder encerrou.
+                O tempo para responder encerrou. Não é mais possível enviar respostas.
               </p>
             ) : null}
             <ol className="mt-8 space-y-6">
@@ -115,7 +198,9 @@ export function ActivityRunner({
                             type="radio"
                             name={q.id}
                             checked={respostas[q.id] === i}
-                            disabled={Boolean(resultado) || prazoEncerrado || Boolean(error)}
+                            disabled={
+                              Boolean(resultado) || enviando || tempoEncerrado || Boolean(error)
+                            }
                             onChange={() => setRespostas((r) => ({ ...r, [q.id]: i }))}
                           />
                           {alternativa}
@@ -143,15 +228,15 @@ export function ActivityRunner({
                   {resultado.xp_ganho} XP conquistados
                 </p>
               </div>
-            ) : (
+            ) : data.iniciada_em ? (
               <button
                 onClick={() => void enviar()}
-                disabled={enviando || prazoEncerrado || Boolean(error)}
+                disabled={enviando || tempoEncerrado || Boolean(error)}
                 className="mt-8 w-full rounded-2xl bg-aura py-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
               >
                 {enviando ? "Corrigindo com segurança…" : "Enviar respostas"}
               </button>
-            )}
+            ) : null}
           </>
         ) : null}
       </main>

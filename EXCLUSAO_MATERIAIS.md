@@ -86,6 +86,45 @@ executado nos testes; o processo agendador do Supabase precisa ser conferido no
 ambiente remoto. A migração ainda não foi aplicada remotamente pelo agente,
 pois não há credenciais administrativas disponíveis.
 
+## Atualização: duração obrigatória por aluno
+
+Após a migração de exclusão de atividades e prazo, execute **todo o conteúdo** de:
+
+`supabase/migrations/20260913030000_duracao_atividades.sql`
+
+No SQL Editor do mesmo projeto, substitua o texto da aba por esse arquivo, clique
+em **Run** e aguarde o sucesso. Depois atualize a aplicação. Salvar o arquivo no
+VS Code não aplica a mudança no Supabase. Execute as migrações em ordem; não
+reaplique uma migração antiga depois desta, pois ela substituiria as funções atuais.
+
+- O professor deve escolher de **1 a 240 minutos**, tanto para publicar quanto
+  para salvar um rascunho. O campo não vem preenchido automaticamente.
+- Nas atividades existentes, use **Ajustar prazo e duração**. Nenhum tempo é
+  atribuído automaticamente: alunos que ainda não responderam aguardam essa
+  configuração. Resultados já enviados permanecem disponíveis.
+- Abrir a atividade mostra as instruções. **Iniciar atividade** registra o início
+  individual no servidor e libera as questões. Consultar a atividade não inicia
+  o tempo. Fechar, atualizar a página ou iniciar em outra aba recupera o mesmo
+  horário de término, sem renová-lo.
+- A contagem usa o horário do servidor e encerra na duração ou no prazo final,
+  o que chegar primeiro. O banco também recusa envios atrasados. **Não há envio
+  automático**: o aluno deve enviar todas as respostas antes de o tempo terminar.
+- Alterar a duração vale para alunos que ainda não iniciaram. O prazo final pode
+  encerrar tentativas em andamento antes do tempo individual; estender o prazo
+  não prolonga o término já registrado para a tentativa.
+- A exclusão automática continua sendo uma opção independente por atividade,
+  baseada na data e hora final. O fim do cronômetro de um aluno não exclui a
+  atividade da turma.
+
+Verifique com uma atividade de 1 minuto: abra como aluno, confira que as questões
+só aparecem após iniciar, atualize a página e veja que o tempo continua. Tente
+enviar depois de zerar. Em outra atividade, envie antes do limite e confirme que
+o resultado e o XP permanecem ao consultar novamente.
+
+Os testes locais executam as funções reais de início e correção no PostgreSQL
+via PGlite, incluindo autorização, vencimento, retomada e não duplicação de XP.
+A aplicação desta migração no banco remoto continua sendo necessária.
+
 ## Aplicação inicial no Supabase
 
 Se aparecer **“A exclusão ainda não está disponível”**, a API retornou `PGRST202`:

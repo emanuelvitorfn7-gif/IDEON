@@ -1,3 +1,4 @@
+import { validarDuracao } from "@/lib/duracao-atividade";
 import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarCodigoTurma } from "@/lib/gamificacao";
@@ -198,11 +199,13 @@ export async function atualizarPrazoAtividade(
   atividadeId: string,
   prazo: string | null,
   excluirAoVencer: boolean,
+  duracaoMinutos: number,
 ) {
   const { error } = await supabase.rpc("atualizar_prazo_atividade_professor", {
     p_atividade_id: atividadeId,
     p_prazo: prazo,
     p_excluir_ao_vencer: excluirAoVencer,
+    p_duracao_minutos: validarDuracao(duracaoMinutos),
   });
   if (error) throw erroExclusao(error, "prazos de atividades");
 }
@@ -216,6 +219,7 @@ export async function salvarAtividade(input: {
   questoes: string[];
   publicada: boolean;
   excluirAoVencer: boolean;
+  duracaoMinutos: number;
 }) {
   if (input.questoes.length === 0) throw new Error("Selecione pelo menos uma questão aprovada.");
   const { data, error } = await supabase.rpc("criar_atividade_professor", {
@@ -227,6 +231,7 @@ export async function salvarAtividade(input: {
     p_questao_ids: [...new Set(input.questoes)],
     p_publicada: input.publicada,
     p_excluir_ao_vencer: input.excluirAoVencer,
+    p_duracao_minutos: validarDuracao(input.duracaoMinutos),
   });
   if (error) throw erroExclusao(error, "criação de atividades");
   return data as Database["public"]["Tables"]["atividades"]["Row"];

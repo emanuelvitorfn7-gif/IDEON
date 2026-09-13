@@ -51,6 +51,7 @@ export type Database = {
           id: string
           excluir_ao_vencer: boolean
           prazo_com_hora: boolean
+          duracao_minutos: number | null
           prazo: string | null
           publicada: boolean
           titulo: string
@@ -63,6 +64,7 @@ export type Database = {
           id?: string
           excluir_ao_vencer?: boolean
           prazo_com_hora?: boolean
+          duracao_minutos?: number | null
           prazo?: string | null
           publicada?: boolean
           titulo: string
@@ -75,6 +77,7 @@ export type Database = {
           id?: string
           excluir_ao_vencer?: boolean
           prazo_com_hora?: boolean
+          duracao_minutos?: number | null
           prazo?: string | null
           publicada?: boolean
           titulo?: string
@@ -350,11 +353,11 @@ export type Database = {
         Returns: Json
       }
       atualizar_prazo_atividade_professor: {
-        Args: { p_atividade_id: string; p_prazo: string | null; p_excluir_ao_vencer: boolean }
+        Args: { p_atividade_id: string; p_prazo: string | null; p_excluir_ao_vencer: boolean; p_duracao_minutos: number }
         Returns: undefined
       }
       criar_atividade_professor: {
-        Args: { p_turma_id: string; p_titulo: string; p_descricao: string; p_prazo: string | null; p_xp: number; p_questao_ids: string[]; p_publicada: boolean; p_excluir_ao_vencer: boolean }
+        Args: { p_turma_id: string; p_titulo: string; p_descricao: string; p_prazo: string | null; p_xp: number; p_questao_ids: string[]; p_publicada: boolean; p_excluir_ao_vencer: boolean; p_duracao_minutos: number }
         Returns: Json
       }
       remover_questoes_professor: {

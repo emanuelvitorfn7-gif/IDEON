@@ -1,44 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { validarConteudoMaterial } from "@/lib/conteudo-material";
 
-const entrada = z.object({
-  materialId: z.string().uuid(),
-  quantidade: z.number().min(3).max(10).default(6),
-});
-
-type QuestaoIA = {
-  enunciado: string;
-  alternativas: string[];
-  correta: number;
-  explicacao: string;
-  assunto: string;
-  dificuldade: "Fácil" | "Médio" | "Difícil";
-};
-
-const questaoIASchema = z.object({
-  enunciado: z.string().trim().min(10),
-
-  alternativas: z
-    .array(z.string().trim().min(1))
-    .length(4)
-    .refine((itens) => new Set(itens).size === 4),
-
-  correta: z.number().int().min(0).max(3),
-
-  explicacao: z.string().trim().min(5),
-
-  assunto: z.string().trim().min(2),
-
-  dificuldade: z.enum(["Fácil", "Médio", "Difícil"]),
-});
+import {
+  entradaGeracaoQuestoesSchema,
+  validarQuestoesGeradas,
+  QuantidadeQuestoesIncorretaError,
+  type QuestaoIA,
+} from "@/lib/questoes-ia";
 
 export const gerarQuestoes = createServerFn({
   method: "POST",
 })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => entrada.parse(data))
+  .inputValidator((data: unknown) => entradaGeracaoQuestoesSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -188,24 +163,17 @@ REGRAS:
     let questoes: QuestaoIA[];
 
     try {
-      const parsed = z
-        .object({
-          questoes: z.array(questaoIASchema).min(1),
-        })
-        .parse(JSON.parse(texto));
-
-      questoes = parsed.questoes.slice(0, data.quantidade);
+      questoes = validarQuestoesGeradas(texto, data.quantidade);
     } catch (erro) {
       console.error("Resposta inválida do Gemini:", texto);
       console.error(erro);
 
       await supabase.from("materiais").update({ status: "erro" }).eq("id", material.id);
 
-      throw new Error("A IA retornou questões incompletas. Tente gerar novamente.");
-    }
-
-    if (questoes.length === 0) {
-      throw new Error("A IA não retornou questões.");
+      if (erro instanceof QuantidadeQuestoesIncorretaError) throw erro;
+      throw new Error(
+        "A IA retornou questões incompletas. Tente gerar novamente ou escolha uma quantidade menor.",
+      );
     }
 
     const linhas = questoes.map((q) => ({

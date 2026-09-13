@@ -76,7 +76,11 @@ function PainelAluno() {
   return (
     <AppShell nav={[{ rotulo: "Painel", para: "/aluno" }]} ativo="/aluno">
       {atividadeAberta ? (
-        <ActivityRunner atividadeId={atividadeAberta} aoFechar={() => setAtividadeAberta(null)} />
+        <ActivityRunner
+          key={atividadeAberta}
+          atividadeId={atividadeAberta}
+          aoFechar={() => setAtividadeAberta(null)}
+        />
       ) : null}
       <div className="mb-10">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-aura/20 bg-aura/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-aura">
@@ -169,12 +173,16 @@ function PainelAluno() {
                 xp: number;
                 prazo: string | null;
                 prazo_com_hora: boolean;
+                duracao_minutos: number | null;
               };
               return (
                 <div key={atividade.id} className="rounded-3xl glass-panel p-6">
                   <h3 className="text-display text-lg">{atividade.titulo}</h3>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {atividade.xp} XP
+                    {atividade.duracao_minutos
+                      ? ` · ${atividade.duracao_minutos} min`
+                      : " · Aguardando duração"}
                     {atividade.prazo
                       ? ` · prazo ${formatarPrazo(atividade.prazo, atividade.prazo_com_hora)}`
                       : ""}
@@ -183,7 +191,7 @@ function PainelAluno() {
                     onClick={() => setAtividadeAberta(atividade.id)}
                     className="mt-5 w-full rounded-xl bg-aura px-4 py-2.5 text-sm font-bold text-primary-foreground"
                   >
-                    Responder agora
+                    Ver atividade
                   </button>
                 </div>
               );

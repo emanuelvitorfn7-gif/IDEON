@@ -1,3 +1,4 @@
+import { DURACAO_MINIMA, DURACAO_MAXIMA } from "@/lib/duracao-atividade";
 import { useState } from "react";
 import { CalendarClock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ export function AcoesAtividade({
     titulo: string;
     prazo: string | null;
     prazo_com_hora: boolean;
+    duracao_minutos: number | null;
     excluir_ao_vencer: boolean;
   };
   aoMudar: (excluidas: string[]) => void;
@@ -30,11 +32,13 @@ export function AcoesAtividade({
   const [modal, setModal] = useState<"excluir" | "prazo" | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [prazo, setPrazo] = useState("");
+  const [duracao, setDuracao] = useState("");
   const [automatico, setAutomatico] = useState(false);
 
   function abrirPrazo() {
     setPrazo(prazoParaFormulario(atividade.prazo, atividade.prazo_com_hora));
     setAutomatico(Boolean(atividade.excluir_ao_vencer));
+    setDuracao(atividade.duracao_minutos?.toString() ?? "");
     setModal("prazo");
   }
 
@@ -50,8 +54,13 @@ export function AcoesAtividade({
           `Atividade excluída. ${excluidas.length} questão(ões) excluída(s); ${resultado.preservadas} compartilhada(s) mantida(s).`,
         );
       } else {
-        await atualizarPrazoAtividade(atividade.id, prazoParaISO(prazo), automatico);
-        toast.success("Prazo atualizado.");
+        await atualizarPrazoAtividade(
+          atividade.id,
+          prazoParaISO(prazo),
+          automatico,
+          Number(duracao),
+        );
+        toast.success("Prazo e duração atualizados.");
       }
       setModal(null);
       aoMudar(excluidas);
@@ -69,7 +78,7 @@ export function AcoesAtividade({
           onClick={abrirPrazo}
           className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
         >
-          <CalendarClock className="size-3.5" /> Ajustar prazo
+          <CalendarClock className="size-3.5" /> Ajustar prazo e duração
         </button>
         <button
           onClick={() => setModal("excluir")}
@@ -88,7 +97,7 @@ export function AcoesAtividade({
         <AlertDialogContent className="w-[calc(100%_-_2rem)] rounded-3xl sm:rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-display text-2xl">
-              {modal === "excluir" ? "Excluir atividade?" : "Ajustar prazo"}
+              {modal === "excluir" ? "Excluir atividade?" : "Ajustar prazo e duração"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {modal === "excluir"
@@ -98,6 +107,25 @@ export function AcoesAtividade({
           </AlertDialogHeader>
           {modal === "prazo" ? (
             <fieldset disabled={ocupado} className="space-y-4">
+              <label className="block text-sm">
+                Duração por aluno (minutos) · obrigatória
+                <input
+                  type="number"
+                  required
+                  min={DURACAO_MINIMA}
+                  max={DURACAO_MAXIMA}
+                  step={1}
+                  value={duracao}
+                  onChange={(e) => setDuracao(e.target.value)}
+                  placeholder="Ex.: 30"
+                  className="mt-2 block w-full rounded-xl border border-input bg-background px-3 py-2"
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                De {DURACAO_MINIMA} a {DURACAO_MAXIMA} minutos a partir do início de cada aluno.
+                Alterar a duração vale apenas para quem ainda não iniciou. Antecipar o prazo final
+                também encerra tentativas em andamento nesse horário.
+              </p>
               <label className="block text-sm">
                 Data e hora
                 <input
@@ -141,7 +169,7 @@ export function AcoesAtividade({
                 ? "Aguarde..."
                 : modal === "excluir"
                   ? "Excluir atividade e questões exclusivas"
-                  : "Salvar prazo"}
+                  : "Salvar prazo e duração"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
