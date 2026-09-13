@@ -272,16 +272,9 @@ Prepare duas contas, um material curto e uma atividade publicada. A demonstraç�
 - separar a versão Flask legada;
 - auditar segurança, privacidade e conformidade.
 
-## Equipe e créditos
 
-> Preencha antes da entrega com os dados oficiais.
 
-| Integrante | Papel | Contato |
-| --- | --- | --- |
-| Nome | Produto / Desenvolvimento / Design / Dados | GitHub ou LinkedIn |
-| Nome | Produto / Desenvolvimento / Design / Dados | GitHub ou LinkedIn |
-
-- Desenvolvido para **[nome do hackathon]**, em **[ano]**.
+- Desenvolvido para **hackatudo**, em **2026**.
 - Prototipação com apoio do Lovable.
 - Dados e autenticação: Supabase.
 - Geração de questões: Google Gemini API.
