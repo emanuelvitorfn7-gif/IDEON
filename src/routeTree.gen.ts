@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as SaudeMentalRouteImport } from './routes/saude-mental'
 import { Route as AlunoIndexRouteImport } from './routes/aluno.index'
 import { Route as ProfessorIndexRouteImport } from './routes/professor.index'
 import { Route as ProfessorTurmaIdRouteImport } from './routes/Professor.turma.$id'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SaudeMentalRoute = SaudeMentalRouteImport.update({
+  id: '/saude-mental',
+  path: '/saude-mental',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunoIndexRoute = AlunoIndexRouteImport.update({
@@ -44,6 +50,7 @@ const ProfessorTurmaIdRoute = ProfessorTurmaIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/saude-mental': typeof SaudeMentalRoute
   '/aluno/': typeof AlunoIndexRoute
   '/professor/': typeof ProfessorIndexRoute
   '/Professor/turma/$id': typeof ProfessorTurmaIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/saude-mental': typeof SaudeMentalRoute
   '/aluno': typeof AlunoIndexRoute
   '/professor': typeof ProfessorIndexRoute
   '/Professor/turma/$id': typeof ProfessorTurmaIdRoute
@@ -59,19 +67,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/saude-mental': typeof SaudeMentalRoute
   '/aluno/': typeof AlunoIndexRoute
   '/professor/': typeof ProfessorIndexRoute
   '/Professor/turma/$id': typeof ProfessorTurmaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/aluno/' | '/professor/' | '/Professor/turma/$id'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/saude-mental'
+    | '/aluno/'
+    | '/professor/'
+    | '/Professor/turma/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/aluno' | '/professor' | '/Professor/turma/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/saude-mental'
+    | '/aluno'
+    | '/professor'
+    | '/Professor/turma/$id'
   id:
     | '__root__'
     | '/'
     | '/auth'
+    | '/saude-mental'
     | '/aluno/'
     | '/professor/'
     | '/Professor/turma/$id'
@@ -80,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  SaudeMentalRoute: typeof SaudeMentalRoute
   AlunoIndexRoute: typeof AlunoIndexRoute
   ProfessorIndexRoute: typeof ProfessorIndexRoute
   ProfessorTurmaIdRoute: typeof ProfessorTurmaIdRoute
@@ -99,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saude-mental': {
+      id: '/saude-mental'
+      path: '/saude-mental'
+      fullPath: '/saude-mental'
+      preLoaderRoute: typeof SaudeMentalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aluno/': {
@@ -128,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  SaudeMentalRoute: SaudeMentalRoute,
   AlunoIndexRoute: AlunoIndexRoute,
   ProfessorIndexRoute: ProfessorIndexRoute,
   ProfessorTurmaIdRoute: ProfessorTurmaIdRoute,

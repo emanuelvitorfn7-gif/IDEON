@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { useAuth, type Papel } from "@/hooks/useAuth";
 
-export function Protegido({ papel, children }: { papel: Papel; children: ReactNode }) {
+export function Protegido({ papel, children }: { papel?: Papel; children: ReactNode }) {
   const { session, papel: papelAtual, carregando } = useAuth();
   const navigate = useNavigate();
 
@@ -13,12 +13,12 @@ export function Protegido({ papel, children }: { papel: Papel; children: ReactNo
       void navigate({ to: "/auth" });
       return;
     }
-    if (papelAtual && papelAtual !== papel) {
+    if (papel && papelAtual && papelAtual !== papel) {
       void navigate({ to: papelAtual === "professor" ? "/professor" : "/aluno" });
     }
   }, [carregando, session, papelAtual, papel, navigate]);
 
-  if (carregando || !session || papelAtual !== papel) {
+  if (carregando || !session || (papel && papelAtual !== papel)) {
     return (
       <div className="grid min-h-screen place-items-center">
         <Loader2 className="size-6 animate-spin text-aura" />

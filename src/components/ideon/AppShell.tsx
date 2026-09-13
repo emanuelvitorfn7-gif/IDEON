@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 
-type ItemNav = { rotulo: string; para: "/" | "/professor" | "/aluno" };
+type ItemNav = { rotulo: string; para: "/" | "/professor" | "/aluno" | "/saude-mental" };
 
 export function AppShell({
   children,
@@ -16,6 +16,9 @@ export function AppShell({
   ativo?: string;
 }) {
   const { perfil, papel, sair } = useAuth();
+  const navegacao: ItemNav[] = nav.some((item) => item.para === "/saude-mental")
+    ? nav
+    : [...nav, { rotulo: "Saúde mental", para: "/saude-mental" }];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -30,10 +33,11 @@ export function AppShell({
           <Logo />
         </Link>
         <nav className="order-3 flex w-full items-center gap-2 overflow-x-auto text-sm text-muted-foreground md:order-none md:w-auto">
-          {nav.map((item) => (
+          {navegacao.map((item) => (
             <Link
               key={item.para}
               to={item.para}
+              aria-current={ativo === item.para ? "page" : undefined}
               className={`shrink-0 rounded-xl px-4 py-2 transition ${
                 ativo === item.para
                   ? "border border-nova/20 bg-nova/10 font-semibold text-nova"
