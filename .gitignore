@@ -5,6 +5,55 @@ instance/
 *.db
 *.sqlite
 .env
+# Configurações locais e suas cópias; somente modelos sem valores podem ser publicados.
+.env*
+!.env.example
+!.env.template
+.envrc
+.dev.vars.*
+.npmrc
+.pypirc
+.netrc
+
+# Chaves, credenciais e exportações privadas
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+id_ed25519*
+credentials.json
+credentials*.json
+service-account*.json
+service_account*.json
+*-firebase-adminsdk-*.json
+secrets/
+credentials/
+.aws/
+.ssh/
+.config/gcloud/
+supabase/.temp/
+supabase/.branches/
+
+# Dados locais, cópias de segurança e relatórios que podem conter informações privadas
+*.sqlite3
+*.db-*
+*.sqlite-*
+*.sqlite3-*
+*.dump
+*.sql.gz
+*.sql.zip
+*.bak
+*.backup
+backups/
+uploads/
+coverage/
+coverage.xml
+.coverage*
+!.coveragerc
+.pytest_cache/
+gitleaks-report.*
 # Logs
 logs
 *.log
